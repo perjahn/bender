@@ -343,6 +343,8 @@ namespace Bender
 
             if (string.IsNullOrEmpty(_host))
             {
+                Fi emptyFileInfo = null;
+
                 foreach (var f in Directory.GetFiles(Path.GetDirectoryName(_pattern), Path.GetFileName(_pattern)))
                 {
                     var fi = new Fi(new FileInfo(f));
@@ -350,6 +352,15 @@ namespace Bender
                     {
                         fis.Add(fi);
                     }
+                    else if (emptyFileInfo == null)
+                    {
+                        emptyFileInfo = fi;
+                    }
+                }
+
+                if (fis.Count == 0 && emptyFileInfo != null)
+                {
+                    fis.Add(emptyFileInfo);
                 }
             }
             else
