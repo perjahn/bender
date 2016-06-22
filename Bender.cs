@@ -135,9 +135,8 @@ namespace Bender
             _socket?.Close();
         }
 
-        private static Tuple<string, string> ReadServerPath(Stream input, Dictionary<string, string> fileMappings)
+        public static Tuple<string, string> ReadServerPath(string serverPath, Dictionary<string, string> fileMappings)
         {
-            var serverPath = ReadLine(input);
             var s = serverPath.Split(':');
             var server = s.Length == 2 ? s[0] : string.Empty;
             var path = s.Length == 2 ? s[1] : s[0];
@@ -250,7 +249,7 @@ namespace Bender
                             }
                         case "tail":
                             {
-                                var serverPath = ReadServerPath(input, fileMappings);
+                                var serverPath = ReadServerPath(ReadLine(input), fileMappings);
                                 var server = serverPath.Item1;
                                 var path = serverPath.Item2;
                                 var countLine = ReadLine(input);
@@ -270,7 +269,7 @@ namespace Bender
                             }
                         case "age":
                             {
-                                var serverPath = ReadServerPath(input, fileMappings);
+                                var serverPath = ReadServerPath(ReadLine(input), fileMappings);
                                 var server = serverPath.Item1;
                                 var path = serverPath.Item2;
                                 var ms = new MemoryStream();
@@ -301,7 +300,7 @@ namespace Bender
                             }
                         case "date":
                             {
-                                var serverPath = ReadServerPath(input, fileMappings);
+                                var serverPath = ReadServerPath(ReadLine(input), fileMappings);
                                 var server = serverPath.Item1;
                                 var path = serverPath.Item2;
                                 var pattern = ReadLine(input);
@@ -502,7 +501,7 @@ namespace Bender
                             }
                             break;
                         default:
-                            if (line.StartsWith("get /?"))
+                            if (line.StartsWith("get /?") || line.StartsWith("get /log"))
                             {
                                 Ajax.Do(lineOrig, input, fileMappings);
                             }

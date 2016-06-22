@@ -61,7 +61,7 @@ namespace Bender
                             {
                                 type = line.Substring(14);
                             }
-                            if (headers == null && methodKnown && getLine != null && getLine.StartsWith("get /ping", StringComparison.OrdinalIgnoreCase))
+                            if (headers == null && methodKnown && getLine != null && (getLine.StartsWith("get /ping", StringComparison.OrdinalIgnoreCase) || getLine.StartsWith("get /log", StringComparison.OrdinalIgnoreCase)))
                             {
                                 headers = new List<string> { getLine };
                             }
@@ -87,9 +87,9 @@ namespace Bender
                     try
                     {
                         string commandString = string.Empty;
-                        if (!string.IsNullOrEmpty(getLine) && headers == null)
+                        if (!string.IsNullOrEmpty(getLine))
                         {
-                            commandString = HttpUtility.UrlDecode(getLine.Substring(6, getLine.Length - 14));
+                            commandString = HttpUtility.UrlDecode(getLine.Substring(4, getLine.Length - 13));
                         }
                         if (cl != -1)
                         {
@@ -182,13 +182,105 @@ namespace Bender
                         }
                         else
                         {
-                            contentType = "Content-Type: text/plain; charset=UTF-8";
-                            var sb = new StringBuilder();
-                            foreach (var h in headers)
+                            if (commandString != null && commandString.StartsWith("/log?", StringComparison.OrdinalIgnoreCase))
                             {
-                                sb.AppendLine(h);
+                                string file = null;
+                                string lines = "0";
+                                string tail = "0";
+                                var newLines = false;
+                                foreach (var entry in commandString.Substring(5).Split('&'))
+                                {
+                                    if (entry.StartsWith("file="))
+                                    {
+                                        file = entry.Split('=')[1];
+                                    }
+                                    else if (entry.StartsWith("lines="))
+                                    {
+                                        lines = entry.Split('=')[1];
+                                    }
+                                    else if (entry.StartsWith("tail="))
+                                    {
+                                        tail = entry.Split('=')[1];
+                                    }
+                                    else if (entry.StartsWith("newlines="))
+                                    {
+                                        newLines = entry.Split('=')[1] != "0";
+                                    }
+                                }
+
+                                if (lines == "-f")
+                                {
+                                    lines = "0";
+                                    tail = "1";
+                                }
+                                contentType = "Content-Type: text/plain; charset=UTF-8";
+                                Write(net, $"HTTP/1.1 200 OK\nAccess-Control-Allow-Origin: *\n{contentType}\nTransfer-Encoding: Chunked\n\n", null);
+
+                                var serverPath = Bender.ReadServerPath(file, fileMappings);
+                                var server = serverPath.Item1;
+                                var path = serverPath.Item2;
+
+                                Action<byte[], int> writeChunk = (bytes, i) =>
+                                {
+                                    var b = Encoding.ASCII.GetBytes($"{i:X}\n");
+                                    net.Write(b, 0, b.Length);
+                                    net.Write(bytes, 0, i);
+                                    Write(net, "\n", null);
+                                };
+
+                                var prevPipe = false;
+
+                                FileTailer.Tail(server, path, int.Parse(lines), int.Parse(tail) > 0, (bytes, i) =>
+                                {
+                                    if (newLines)
+                                    {
+                                        var newBytes = new List<byte>();
+                                        for (int t = 0; t < i; ++t)
+                                        {
+                                            var cur = bytes[t];
+
+                                            if (prevPipe)
+                                            {
+                                                newBytes.Add((byte)'\n');
+                                                prevPipe = false;
+                                            }
+                                            else if (cur == '|')
+                                            {
+                                                prevPipe = true;
+                                            }
+                                            else
+                                            {
+                                                newBytes.Add(cur);
+                                            }
+                                        }
+
+                                        writeChunk(newBytes.ToArray(), newBytes.Count);
+                                    }
+                                    else
+                                    {
+                                        writeChunk(bytes, i);
+                                    }
+                                });
+
+                                if (prevPipe)
+                                {
+                                    writeChunk(new[] { (byte)'|' }, 1);
+                                }
+
+                                Write(net, "0\n\n", null);
+                                methodKnown = false;
+                                continue;
                             }
-                            body = Encoding.UTF8.GetBytes(sb.ToString());
+                            else
+                            {
+                                contentType = "Content-Type: text/plain; charset=UTF-8";
+                                var sb = new StringBuilder();
+                                foreach (var h in headers)
+                                {
+                                    sb.AppendLine(h);
+                                }
+                                body = Encoding.UTF8.GetBytes(sb.ToString());
+                            }
                         }
                     }
                     catch (Exception)

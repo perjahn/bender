@@ -9,7 +9,7 @@ namespace Bender
 {
     public class FileTailer
     {
-        public static void Tail(string server, string path, int count, bool tail, Stream output)
+        public static void Tail(string server, string path, int count, bool tail, Action<byte[], int> output)
         {
             try
             {
@@ -45,8 +45,13 @@ namespace Bender
             catch (Exception e)
             {
                 var buf = Encoding.ASCII.GetBytes(e.ToString());
-                output.Write(buf, 0, buf.Length);
+                output(buf, buf.Length);
             }
+        }
+
+        public static void Tail(string server, string path, int count, bool tail, Stream output)
+        {
+            Tail(server, path, count, tail, (buf, length) => output.Write(buf, 0, length));
         }
 
         private static bool CheckRegex(byte[] buf, Regex regex, ref long beg, ref long end)
@@ -99,11 +104,17 @@ namespace Bender
             }
         }
 
-        public static void GetStrings(Stream fs, int lc, Stream output, Regex regex)
+        public static void GetStrings(Stream fs, int lc, Action<byte[], int> output, Regex regex)
         {
             if (lc == 0 && regex == null)
             {
-                fs.CopyTo(output);
+                var tmp = new byte[4096];
+                while (true)
+                {
+                    var read = fs.Read(tmp, 0, tmp.Length);
+                    if (read <= 0) break;
+                    output(tmp, read);
+                }
                 return;
             }
 
@@ -204,7 +215,7 @@ namespace Bender
                 var buf2 = new byte[end - start];
                 fs.Read(buf2, 0, buf2.Length);
 
-                output.Write(buf2, 0, buf2.Length);
+                output(buf2, buf2.Length);
             }
         }
     }
