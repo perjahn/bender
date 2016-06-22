@@ -210,7 +210,7 @@ namespace Bender
 
                                 if (lines == "-f")
                                 {
-                                    lines = "0";
+                                    lines = "40";
                                     tail = "1";
                                 }
                                 contentType = "Content-Type: text/plain; charset=UTF-8";
