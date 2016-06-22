@@ -190,21 +190,23 @@ namespace Bender
                                 var newLines = false;
                                 foreach (var entry in commandString.Substring(5).Split('&'))
                                 {
-                                    if (entry.StartsWith("file="))
+                                    var line = entry.Split('=');
+                                    switch (line[0].ToLowerInvariant())
                                     {
-                                        file = entry.Split('=')[1];
-                                    }
-                                    else if (entry.StartsWith("lines="))
-                                    {
-                                        lines = entry.Split('=')[1];
-                                    }
-                                    else if (entry.StartsWith("tail="))
-                                    {
-                                        tail = entry.Split('=')[1];
-                                    }
-                                    else if (entry.StartsWith("newlines="))
-                                    {
-                                        newLines = entry.Split('=')[1] != "0";
+                                        case "file":
+                                            file = line[1];
+                                            break;
+                                        case "lines":
+                                        case "var":
+                                            lines = line[1];
+                                            break;
+                                        case "tail":
+                                            tail = line[1];
+                                            break;
+                                        case "newlines":
+                                            newLines = line[1] != "0";
+                                            break;
+
                                     }
                                 }
 
@@ -213,6 +215,7 @@ namespace Bender
                                     lines = "40";
                                     tail = "1";
                                 }
+
                                 contentType = "Content-Type: text/plain; charset=UTF-8";
                                 Write(net, $"HTTP/1.1 200 OK\nAccess-Control-Allow-Origin: *\n{contentType}\nTransfer-Encoding: Chunked\n\n", null);
 
@@ -225,49 +228,28 @@ namespace Bender
                                     var b = Encoding.ASCII.GetBytes($"{i:X}\n");
                                     net.Write(b, 0, b.Length);
                                     net.Write(bytes, 0, i);
-                                    Write(net, "\n", null);
+                                    net.Write(new byte[] { 10 }, 0, 1);
                                 };
-
-                                var prevPipe = false;
 
                                 FileTailer.Tail(server, path, int.Parse(lines), int.Parse(tail) > 0, (bytes, i) =>
                                 {
                                     if (newLines)
                                     {
-                                        var newBytes = new List<byte>();
-                                        for (int t = 0; t < i; ++t)
-                                        {
-                                            var cur = bytes[t];
+                                        bytes = (byte[])bytes.Clone();
 
-                                            if (prevPipe)
+                                        for (int t = 1; t < i; ++t)
+                                        {
+                                            if (bytes[i - 1] == '|' && bytes[i] == '|')
                                             {
-                                                newBytes.Add((byte)'\n');
-                                                prevPipe = false;
-                                            }
-                                            else if (cur == '|')
-                                            {
-                                                prevPipe = true;
-                                            }
-                                            else
-                                            {
-                                                newBytes.Add(cur);
+                                                bytes[i - 1] = bytes[i] = 10;
                                             }
                                         }
+                                    }
 
-                                        writeChunk(newBytes.ToArray(), newBytes.Count);
-                                    }
-                                    else
-                                    {
-                                        writeChunk(bytes, i);
-                                    }
+                                    writeChunk(bytes, i);
                                 });
 
-                                if (prevPipe)
-                                {
-                                    writeChunk(new[] { (byte)'|' }, 1);
-                                }
-
-                                Write(net, "0\n\n", null);
+                                net.Write(new byte[] { (byte)'0', 10, 10 }, 0, 3);
                                 methodKnown = false;
                                 continue;
                             }
