@@ -244,19 +244,16 @@ namespace Bender
 
                                 if (!bw)
                                 {
-                                    writeStr("<html><body style=\"background-color:#000000;color:#FFBF00\"><pre>");
+                                    writeStr("<html><body style=\"background-color:#000000;color:#FFC200\"><pre>");
                                 }
+
+                                var changeColour = false;
 
                                 FileTailer.Tail(server, path, int.Parse(lines), int.Parse(tail) > 0, (bytes, i) =>
                                 {
                                     if (newLines || !bw)
                                     {
                                         var s = Encoding.UTF8.GetString(bytes, 0, i);
-
-                                        if (newLines)
-                                        {
-                                            s = s.Replace("||", "\r");
-                                        }
 
                                         if (!bw)
                                         {
@@ -266,6 +263,65 @@ namespace Bender
                                             {
                                                 s = kvp.Key.Replace(s, $"<span style=\"color:{kvp.Value}\">$0</span>");
                                             }
+
+                                            var sb = new StringBuilder();
+                                            var start = 0;
+
+                                            while (true)
+                                            {
+                                                var end = s.IndexOf("\r\n", start);
+                                                var end2 = s.IndexOf((char)10, start);
+
+                                                if (end != -1 && end2 != -1)
+                                                {
+                                                    if (end < end2)
+                                                    {
+                                                        end += 2;
+                                                    }
+                                                    else
+                                                    {
+                                                        end = end2 + 1;
+                                                    }
+                                                }
+                                                else if (end2 != -1)
+                                                {
+                                                    end = end2 + 1;
+                                                }
+                                                else if (end != -1)
+                                                {
+                                                    end += 2;
+                                                }
+
+                                                var sub = s.Substring(start, end == -1 ? s.Length - start : end - start);
+                                                if (string.IsNullOrEmpty(sub))
+                                                {
+                                                    break;
+                                                }
+
+                                                if (changeColour)
+                                                {
+                                                    sub = $"<span style=\"color:BD8000\">{sub}</span>";
+                                                }
+
+                                                sb.Append(sub);
+
+                                                if (end == -1)
+                                                {
+                                                    break;
+                                                }
+                                                else
+                                                {
+                                                    start = end;
+                                                    changeColour = !changeColour;
+                                                }
+                                            }
+
+                                            s = sb.ToString();
+                                        }
+
+                                        if (newLines)
+                                        {
+                                            s = s.Replace("||", "\r");
                                         }
 
                                         bytes = Encoding.UTF8.GetBytes(s);
