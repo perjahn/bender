@@ -198,7 +198,7 @@ namespace Bender
                                             file = line[1];
                                             break;
                                         case "lines":
-                                        case "var":
+                                        case "val":
                                             lines = line[1];
                                             break;
                                         case "tail":
