@@ -235,15 +235,22 @@ namespace Bender
                                 {
                                     if (newLines)
                                     {
-                                        bytes = (byte[])bytes.Clone();
-
-                                        for (int t = 1; t < i; ++t)
+                                        var output = new List<byte>(i);
+                                        for (var t = 0; t < i; ++t)
                                         {
-                                            if (bytes[i - 1] == '|' && bytes[i] == '|')
+                                            if (t < i - 1 && bytes[t] == '|' && bytes[t + 1] == '|')
                                             {
-                                                bytes[i - 1] = bytes[i] = 10;
+                                                output.Add(10);
+                                                ++t;
+                                            }
+                                            else
+                                            {
+                                                output.Add(bytes[t]);
                                             }
                                         }
+
+                                        bytes = output.ToArray();
+                                        i = bytes.Length;
                                     }
 
                                     writeChunk(bytes, i);
