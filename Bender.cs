@@ -10,6 +10,7 @@ using System.Net.Sockets;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 
 namespace Bender
@@ -54,6 +55,11 @@ namespace Bender
             return ReadMappings("Servers");
         }
 
+        public static Dictionary<Regex, string> ReadColorization()
+        {
+            return ReadMappings("ColorMappings").ToDictionary(kvp => new Regex(kvp.Key, RegexOptions.Compiled | RegexOptions.CultureInvariant), kvp => kvp.Value);
+        }
+
         public static string ListenPort => ConfigurationManager.AppSettings["ListenPort"];
 
         private static Socket _socket;
@@ -64,6 +70,7 @@ namespace Bender
             {
                 var port = int.Parse(ListenPort);
                 var fileMappings = ReadFileMappings();
+                var colorMappings = ReadColorization();
 
                 LogInfo("Starting service at port " + port + " with " + fileMappings.Count + " mappings. ServiceStartMode: " + Program.GetServiceStartMode() + ". Process ID " + Process.GetCurrentProcess().Id + ".");
                 Socket sock;
@@ -99,7 +106,7 @@ namespace Bender
                         {
                             using (var netStream = new NetworkStream(peer, true))
                             {
-                                DoCommand(peer, netStream, netStream, fileMappings);
+                                DoCommand(peer, netStream, netStream, fileMappings, colorMappings);
                             }
                         })
                         { IsBackground = true }.Start();
@@ -167,7 +174,7 @@ namespace Bender
             return new Tuple<string, string>(server, path);
         }
 
-        public static void DoCommand(Socket peer, Stream input, Stream output, Dictionary<string, string> fileMappings)
+        public static void DoCommand(Socket peer, Stream input, Stream output, Dictionary<string, string> fileMappings, Dictionary<Regex, string> colorMappings)
         {
             using (input)
             {
@@ -446,7 +453,7 @@ namespace Bender
                             }
                         case "post / http/1.0":
                         case "post / http/1.1":
-                            Ajax.Do(input, fileMappings);
+                            Ajax.Do(input, fileMappings, colorMappings);
                             break;
                         case "users":
                             {
@@ -493,7 +500,7 @@ namespace Bender
                             break;
                         case "get /ping http/1.0":
                         case "get /ping http/1.1":
-                            Ajax.Do(lineOrig, input, fileMappings);
+                            Ajax.Do(lineOrig, input, fileMappings, colorMappings);
                             break;
                         case "bend":
                             {
@@ -503,7 +510,7 @@ namespace Bender
                         default:
                             if (line.StartsWith("get /?") || line.StartsWith("get /log"))
                             {
-                                Ajax.Do(lineOrig, input, fileMappings);
+                                Ajax.Do(lineOrig, input, fileMappings, colorMappings);
                             }
                             else
                             {

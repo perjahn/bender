@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
 using System.Web.Script.Serialization;
@@ -12,12 +12,12 @@ namespace Bender
 {
     class Ajax
     {
-        public static void Do(Stream net, Dictionary<string, string> fileMappings)
+        public static void Do(Stream net, Dictionary<string, string> fileMappings, Dictionary<Regex, string> colorMappings)
         {
-            Do(null, net, fileMappings);
+            Do(null, net, fileMappings, colorMappings);
         }
 
-        public static void Do(string getLine, Stream net, Dictionary<string, string> fileMappings)
+        public static void Do(string getLine, Stream net, Dictionary<string, string> fileMappings, Dictionary<Regex, string> colorMappings)
         {
             var ns = net as NetworkStream;
             if (ns != null)
@@ -133,7 +133,7 @@ namespace Bender
                                 var task = Task.Factory.StartNew(() =>
                                 {
                                     var rs = new MemoryStream();
-                                    Bender.DoCommand(null, ms, rs, fileMappings);
+                                    Bender.DoCommand(null, ms, rs, fileMappings, colorMappings);
                                     return Tuple.Create(key, rs);
                                 });
                                 tasks.Add(task);
@@ -188,6 +188,7 @@ namespace Bender
                                 string lines = "0";
                                 string tail = "0";
                                 var newLines = false;
+                                var bw = true;
                                 foreach (var entry in commandString.Substring(5).Split('&'))
                                 {
                                     var line = entry.Split('=');
@@ -206,6 +207,9 @@ namespace Bender
                                         case "newlines":
                                             newLines = line[1] != "0";
                                             break;
+                                        case "bw":
+                                            bw = line[1] != "0";
+                                            break;
 
                                     }
                                 }
@@ -216,7 +220,8 @@ namespace Bender
                                     tail = "1";
                                 }
 
-                                contentType = "Content-Type: text/plain; charset=UTF-8";
+                                var c = bw ? "plain" : "html";
+                                contentType = $"Content-Type: text/{c}; charset=UTF-8";
                                 Write(net, $"HTTP/1.1 200 OK\nAccess-Control-Allow-Origin: *\n{contentType}\nTransfer-Encoding: Chunked\n\n", null);
 
                                 var serverPath = Bender.ReadServerPath(file, fileMappings);
@@ -231,30 +236,49 @@ namespace Bender
                                     net.Write(new byte[] { 10 }, 0, 1);
                                 };
 
+                                Action<string> writeStr = s =>
+                                {
+                                    var b = Encoding.UTF8.GetBytes(s);
+                                    writeChunk(b, b.Length);
+                                };
+
+                                if (!bw)
+                                {
+                                    writeStr("<html><body style=\"background-color:#000000;color:#FFBF00\"><pre>");
+                                }
+
                                 FileTailer.Tail(server, path, int.Parse(lines), int.Parse(tail) > 0, (bytes, i) =>
                                 {
-                                    if (newLines)
+                                    if (newLines || !bw)
                                     {
-                                        var output = new List<byte>(i);
-                                        for (var t = 0; t < i; ++t)
+                                        var s = Encoding.UTF8.GetString(bytes, 0, i);
+
+                                        if (newLines)
                                         {
-                                            if (t < i - 1 && bytes[t] == '|' && bytes[t + 1] == '|')
+                                            s = s.Replace("||", "\r");
+                                        }
+
+                                        if (!bw)
+                                        {
+                                            s = HttpUtility.HtmlEncode(s);
+
+                                            foreach (var kvp in colorMappings)
                                             {
-                                                output.Add(10);
-                                                ++t;
-                                            }
-                                            else
-                                            {
-                                                output.Add(bytes[t]);
+                                                s = kvp.Key.Replace(s, $"<span style=\"color:{kvp.Value}\">$0</span>");
                                             }
                                         }
 
-                                        bytes = output.ToArray();
+                                        bytes = Encoding.UTF8.GetBytes(s);
                                         i = bytes.Length;
                                     }
 
                                     writeChunk(bytes, i);
                                 });
+
+                                if (!bw)
+                                {
+                                    writeStr("</pre></body><html>");
+                                }
 
                                 net.Write(new byte[] { (byte)'0', 10, 10 }, 0, 3);
                                 methodKnown = false;

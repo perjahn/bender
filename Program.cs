@@ -169,7 +169,7 @@ namespace Bender
                 else
                 {
                     ServiceShell.Start();
-                    Bender.DoCommand(null, new ConsoleStream(batchSb == null ? Console.In : new StringReader(batchSb.ToString()), null), new ConsoleStream(null, Console.Out), Bender.ReadFileMappings());
+                    Bender.DoCommand(null, new ConsoleStream(batchSb == null ? Console.In : new StringReader(batchSb.ToString()), null), new ConsoleStream(null, Console.Out), Bender.ReadFileMappings(), Bender.ReadColorization());
                 }
             }
             else
