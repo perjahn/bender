@@ -52,7 +52,13 @@ namespace Bender
             // netsh.exe winhttp set proxy proxy-server="a" bypass-list="*"
             var fakeProxy = new byte[] { 0x28, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x61, 0x01, 0x00, 0x00, 0x00, 0x2a };
             var old = Registry.GetValue(key, value, null);
-            Registry.SetValue(key, value, fakeProxy);
+            try
+            {
+                Registry.SetValue(key, value, fakeProxy);
+            }
+            catch (UnauthorizedAccessException)
+            { 
+            }
             var tf = Path.GetTempFileName();
             Directory.CreateDirectory(@"c:\symbols");
             string sosPath = string.Empty;
@@ -106,7 +112,13 @@ namespace Bender
 
             Shell.Do(peer, null, output, @"C:\Program Files\Windows Kits\10\Debuggers\x64\cdb.exe", $"{attachArguments} -cfr \"{tf}\"", false);
 
-            Registry.SetValue(key, value, old);
+            try
+            {
+                Registry.SetValue(key, value, old);
+            }
+            catch (UnauthorizedAccessException)
+            {
+            }
 
             File.Delete(tf);
         }

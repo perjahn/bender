@@ -10,7 +10,7 @@ using System.Web.Script.Serialization;
 
 namespace Bender
 {
-    class Ajax
+    class Http
     {
         public static void Do(Stream net, Dictionary<string, string> fileMappings, Dictionary<Regex, string> colorMappings)
         {
@@ -61,7 +61,7 @@ namespace Bender
                             {
                                 type = line.Substring(14);
                             }
-                            if (headers == null && methodKnown && getLine != null && (getLine.StartsWith("get /ping", StringComparison.OrdinalIgnoreCase) || getLine.StartsWith("get /log", StringComparison.OrdinalIgnoreCase)))
+                            if (headers == null && methodKnown && !string.IsNullOrEmpty(getLine))
                             {
                                 headers = new List<string> { getLine };
                             }
@@ -182,37 +182,40 @@ namespace Bender
                         }
                         else
                         {
-                            if (commandString != null && commandString.StartsWith("/log?", StringComparison.OrdinalIgnoreCase))
+                            var param = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                            var index = commandString.IndexOf('?');
+                            if (index != -1)
                             {
-                                string file = null;
-                                string lines = "40";
-                                string tail = "0";
-                                var newLines = false;
-                                var bw = true;
-                                foreach (var entry in commandString.Substring(5).Split('&'))
+                                foreach (var entry in commandString.Substring(1 + index).Split('&'))
                                 {
                                     var line = entry.Split('=');
-                                    switch (line[0].ToLowerInvariant())
+                                    if (line.Length == 2)
                                     {
-                                        case "file":
-                                            file = line[1];
-                                            break;
-                                        case "lines":
-                                        case "val":
-                                            lines = line[1];
-                                            break;
-                                        case "tail":
-                                            tail = line[1];
-                                            break;
-                                        case "newlines":
-                                            newLines = line[1] != "0";
-                                            break;
-                                        case "bw":
-                                            bw = line[1] != "0";
-                                            break;
-
+                                        param[line[0]] = line[1];
                                     }
                                 }
+
+                                commandString = commandString.Substring(0, index);
+                            }
+
+                            var bw = !param.ContainsKey("bw") || param["bw"] != "0";
+
+                            Action<string> writeChunkedStr = s =>
+                            {
+                                var sbuf = Encoding.UTF8.GetBytes(s);
+                                var lbuf = Encoding.ASCII.GetBytes($"{sbuf.Length:X}\n");
+                                net.Write(lbuf, 0, lbuf.Length);
+                                net.Write(sbuf, 0, sbuf.Length);
+                                net.Write(new byte[] { 10 }, 0, 1);
+                            };
+
+                            if (commandString.Equals("/log", StringComparison.OrdinalIgnoreCase))
+                            {
+                                var file = param.ContainsKey("file") ? param["file"] : null;
+                                var lines = param.ContainsKey("lines") ? param["lines"] : (param.ContainsKey("val") ? param["val"] : "40");
+                                var tail = param.ContainsKey("tail") ? param["tail"] : "0";
+
+                                var newLines = param.ContainsKey("newlines") && param["newlines"] != "0";
 
                                 if (lines == "-f")
                                 {
@@ -220,16 +223,7 @@ namespace Bender
                                     tail = "1";
                                 }
 
-                                Action<string> writeStr = s =>
-                                {
-                                    var sbuf = Encoding.UTF8.GetBytes(s);
-                                    var lbuf = Encoding.ASCII.GetBytes($"{sbuf.Length:X}\n");
-                                    net.Write(lbuf, 0, lbuf.Length);
-                                    net.Write(sbuf, 0, sbuf.Length);
-                                    net.Write(new byte[] { 10 }, 0, 1);
-                                };
-
-                                var logOut = new LogOutput(writeStr, newLines, bw ? null : colorMappings);
+                                var logOut = new LogOutput(writeChunkedStr, newLines, bw ? null : colorMappings);
 
                                 contentType = logOut.ContentType;
                                 Write(net, $"HTTP/1.1 200 OK\nAccess-Control-Allow-Origin: *\n{contentType}\nTransfer-Encoding: Chunked\n\n", null);
@@ -245,9 +239,22 @@ namespace Bender
 
                                 logOut.End();
 
-                                net.Write(new byte[] { (byte)'0', 10, 10 }, 0, 3);
+                                writeChunkedStr(string.Empty);
                                 methodKnown = false;
                                 continue;
+                            }
+                            else if (commandString.Equals("/stack", StringComparison.OrdinalIgnoreCase))
+                            {
+                                var output = new MemoryStream();
+                                StackTrace.DoManaged(null, output, param["exe"]);
+                                var str = Encoding.UTF8.GetString(output.ToArray());
+                                var logOut = new LogOutput(writeChunkedStr, false, bw ? null : colorMappings);
+
+                                contentType = logOut.ContentType;
+                                Write(net, $"HTTP/1.1 200 OK\nAccess-Control-Allow-Origin: *\n{contentType}\nTransfer-Encoding: Chunked\n\n", null);
+                                logOut.Add(str);
+                                logOut.End();
+                                break;
                             }
                             else
                             {

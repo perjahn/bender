@@ -453,7 +453,7 @@ namespace Bender
                             }
                         case "post / http/1.0":
                         case "post / http/1.1":
-                            Ajax.Do(input, fileMappings, colorMappings);
+                            Http.Do(input, fileMappings, colorMappings);
                             break;
                         case "users":
                             {
@@ -498,19 +498,15 @@ namespace Bender
                                 }
                             }
                             break;
-                        case "get /ping http/1.0":
-                        case "get /ping http/1.1":
-                            Ajax.Do(lineOrig, input, fileMappings, colorMappings);
-                            break;
                         case "bend":
                             {
                                 Remote.Do(peer, input, output);
                             }
                             break;
                         default:
-                            if (line.StartsWith("get /?") || line.StartsWith("get /log"))
+                            if (line.StartsWith("get /"))
                             {
-                                Ajax.Do(lineOrig, input, fileMappings, colorMappings);
+                                Http.Do(lineOrig, input, fileMappings, colorMappings);
                             }
                             else
                             {

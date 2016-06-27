@@ -55,7 +55,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Ajax.cs" />
     <Compile Include="Bender.cs" />
     <Compile Include="BuildDate.cs" />
     <Compile Include="ConsoleStream.cs" />
@@ -65,6 +64,7 @@
     <Compile Include="DumpFile.cs" />
     <Compile Include="FetchUri.cs" />
     <Compile Include="FileTailer.cs" />
+    <Compile Include="Http.cs" />
     <Compile Include="LogOutput.cs" />
     <Compile Include="LogStream.cs" />
     <Compile Include="Online.cs" />

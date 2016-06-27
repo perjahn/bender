@@ -25,7 +25,7 @@ namespace Bender
             _nl = nl;
         }
 
-        public void Add(byte[] buf, int offset, int count)
+        public void Add(string s)
         {
             if (_first)
             {
@@ -37,8 +37,6 @@ namespace Bender
 
                 _first = false;
             }
-
-            var s = Encoding.UTF8.GetString(buf, offset, count);
 
             if (_colorMappings == null)
             {
@@ -90,6 +88,11 @@ namespace Bender
                     start = end + 1;
                 }
             }
+        }
+
+        public void Add(byte[] buf, int offset, int count)
+        {
+            Add(Encoding.UTF8.GetString(buf, offset, count));
         }
 
         public void End()
