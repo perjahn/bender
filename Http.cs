@@ -246,7 +246,7 @@ namespace Bender
                             else if (commandString.Equals("/stack", StringComparison.OrdinalIgnoreCase))
                             {
                                 var output = new MemoryStream();
-                                StackTrace.DoManaged(null, output, param["exe"]);
+                                StackTrace.DoManaged(null, output, Bender.GetPid2(param["exe"]));
                                 var str = Encoding.UTF8.GetString(output.ToArray());
                                 var logOut = new LogOutput(writeChunkedStr, false, bw ? null : colorMappings);
 
