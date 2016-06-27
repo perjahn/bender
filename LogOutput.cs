@@ -29,11 +29,7 @@ namespace Bender
         {
             if (_first)
             {
-                if (_colorMappings != null)
-                {
-
-                    _flusher("<html><body style=\"background-color:#000000;color:#FFC200\"><pre>");
-                }
+                _flusher($"<html><body {(_colorMappings == null ? string.Empty : "style =\"background-color:#000000;color:#FFC200\" ")}onLoad =\"javascript:window.scrollTo(0,document.body.scrollHeight);\"><pre>");
 
                 _first = false;
             }
@@ -99,13 +95,10 @@ namespace Bender
         {
             if (!_first)
             {
-                if (_colorMappings != null)
-                {
-                    _flusher("</pre></body><html>");
-                }
+                _flusher("</pre></body><html>");
             }
         }
 
-        public string ContentType => $"Content-Type: text/{(_colorMappings == null ? "plain" : "html")}; charset=UTF-8";
+        public string ContentType => $"Content-Type: text/html; charset=UTF-8";
     }
 }
