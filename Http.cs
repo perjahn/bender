@@ -256,6 +256,7 @@ namespace Bender
                                 Write(net, $"HTTP/1.1 200 OK\nAccess-Control-Allow-Origin: *\n{contentType}\nTransfer-Encoding: Chunked\nX-Accel-Buffering: no\n\n", null);
                                 logOut.Add(str);
                                 logOut.End();
+                                writeChunkedStr(string.Empty);
                             }
                             else if (commandString.Equals("/wer", StringComparison.OrdinalIgnoreCase))
                             {
@@ -268,6 +269,7 @@ namespace Bender
                                 Write(net, $"HTTP/1.1 200 OK\nAccess-Control-Allow-Origin: *\n{contentType}\nTransfer-Encoding: Chunked\nX-Accel-Buffering: no\n\n", null);
                                 logOut.Add(str);
                                 logOut.End();
+                                writeChunkedStr(string.Empty);
                             }
                             else if (commandString.Equals("/get"))
                             {
@@ -282,6 +284,7 @@ namespace Bender
                                 Write(net, $"HTTP/1.1 200 OK\nAccess-Control-Allow-Origin: *\n{contentType}\nTransfer-Encoding: Chunked\nX-Accel-Buffering: no\n\n", null);
                                 logOut.Add(str);
                                 logOut.End();
+                                writeChunkedStr(string.Empty);
                             }
                             else
                             {
