@@ -230,7 +230,7 @@ namespace Bender
                                 var logOut = new LogOutput(writeChunkedStr, newLines, bw ? null : colorMappings);
 
                                 contentType = logOut.ContentType;
-                                Write(net, $"HTTP/1.1 200 OK\nAccess-Control-Allow-Origin: *\n{contentType}\nTransfer-Encoding: Chunked\n\n", null);
+                                Write(net, $"HTTP/1.1 200 OK\nAccess-Control-Allow-Origin: *\n{contentType}\nTransfer-Encoding: Chunked\nX-Accel-Buffering: no\n\n", null);
 
                                 var serverPath = Bender.ReadServerPath(file, fileMappings);
                                 var server = serverPath.Item1;
@@ -253,7 +253,7 @@ namespace Bender
                                 var logOut = new LogOutput(writeChunkedStr, false, bw ? null : colorMappings);
 
                                 contentType = logOut.ContentType;
-                                Write(net, $"HTTP/1.1 200 OK\nAccess-Control-Allow-Origin: *\n{contentType}\nTransfer-Encoding: Chunked\n\n", null);
+                                Write(net, $"HTTP/1.1 200 OK\nAccess-Control-Allow-Origin: *\n{contentType}\nTransfer-Encoding: Chunked\nX-Accel-Buffering: no\n\n", null);
                                 logOut.Add(str);
                                 logOut.End();
                             }
@@ -265,7 +265,7 @@ namespace Bender
                                 var logOut = new LogOutput(writeChunkedStr, false, bw ? null : colorMappings);
 
                                 contentType = logOut.ContentType;
-                                Write(net, $"HTTP/1.1 200 OK\nAccess-Control-Allow-Origin: *\n{contentType}\nTransfer-Encoding: Chunked\n\n", null);
+                                Write(net, $"HTTP/1.1 200 OK\nAccess-Control-Allow-Origin: *\n{contentType}\nTransfer-Encoding: Chunked\nX-Accel-Buffering: no\n\n", null);
                                 logOut.Add(str);
                                 logOut.End();
                             }
@@ -279,7 +279,7 @@ namespace Bender
                                 FetchUri.Fetch(path, output);
                                 var str = Encoding.UTF8.GetString(output.ToArray());
                                 contentType = logOut.ContentType;
-                                Write(net, $"HTTP/1.1 200 OK\nAccess-Control-Allow-Origin: *\n{contentType}\nTransfer-Encoding: Chunked\n\n", null);
+                                Write(net, $"HTTP/1.1 200 OK\nAccess-Control-Allow-Origin: *\n{contentType}\nTransfer-Encoding: Chunked\nX-Accel-Buffering: no\n\n", null);
                                 logOut.Add(str);
                                 logOut.End();
                             }
