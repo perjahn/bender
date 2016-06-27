@@ -29,60 +29,53 @@ namespace Bender
         {
             if (_first)
             {
-                _flusher($"<html><body {(_colorMappings == null ? string.Empty : "style =\"background-color:#000000;color:#FFC200\" ")}onLoad =\"javascript:window.scrollTo(0,document.body.scrollHeight);\"><pre>");
+                var clrString = _colorMappings == null ? "style =\"background-color:#FFFFFF;color:#000000\"" : "style =\"background-color:#000000;color:#FFC200\"";
+
+                _flusher($"<html><body {clrString}onLoad =\"javascript:window.scrollTo(0,document.body.scrollHeight);\"><pre>");
 
                 _first = false;
             }
 
-            if (_colorMappings == null)
+            s = s.Replace("\n", string.Empty);
+
+            s = HttpUtility.HtmlEncode(s);
+
+            var start = 0;
+
+            while (true)
             {
-                if (_nl)
+                if (start == s.Length)
                 {
-                    s = s.Replace("||", "\r");
+                    break;
                 }
 
-                _flusher(s);
-            }
-            else
-            {
-                s = s.Replace("\n", string.Empty);
+                var end = s.IndexOf('\r', start);
+                var outs = s.Substring(start, (end == -1 ? s.Length : end + 1) - start);
 
-                s = HttpUtility.HtmlEncode(s);
-
-                var start = 0;
-
-                while (true)
+                if (_colorMappings != null)
                 {
-                    if (start == s.Length)
-                    {
-                        break;
-                    }
-
-                    var end = s.IndexOf('\r', start);
-                    var outs = s.Substring(start, (end == -1 ? s.Length : end + 1) - start);
-
                     foreach (var kvp in _colorMappings)
                     {
                         outs = kvp.Key.Replace(outs, $"<span style=\"color:{kvp.Value}\">$0</span>");
                     }
-
-                    if (_changeCol)
-                    {
-                        outs = $"<span style=\"color:BD8000\">{outs}</span>";
-                    }
-
-                    if (_nl)
-                    {
-                        outs = outs.Replace("||", "\r");
-                    }
-
-                    _flusher(outs);
-
-                    if (end == -1) break;
-
-                    _changeCol = !_changeCol;
-                    start = end + 1;
                 }
+
+                if (_changeCol)
+                {
+                    outs = $"<span style=\"color:{(_colorMappings == null ? "1F1FBF" : "BD8000")}\">{outs}</span>";
+                }
+
+                if (_nl)
+                {
+                    outs = outs.Replace("||", "\r");
+                }
+
+                _flusher(outs);
+
+                if (end == -1) break;
+
+                _changeCol = !_changeCol;
+                start = end + 1;
             }
         }
 
