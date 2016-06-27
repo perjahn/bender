@@ -65,6 +65,7 @@
     <Compile Include="DumpFile.cs" />
     <Compile Include="FetchUri.cs" />
     <Compile Include="FileTailer.cs" />
+    <Compile Include="LogOutput.cs" />
     <Compile Include="LogStream.cs" />
     <Compile Include="Online.cs" />
     <Compile Include="PerformanceCounter.cs" />

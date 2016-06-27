@@ -185,7 +185,7 @@ namespace Bender
                             if (commandString != null && commandString.StartsWith("/log?", StringComparison.OrdinalIgnoreCase))
                             {
                                 string file = null;
-                                string lines = "0";
+                                string lines = "40";
                                 string tail = "0";
                                 var newLines = false;
                                 var bw = true;
@@ -220,121 +220,30 @@ namespace Bender
                                     tail = "1";
                                 }
 
-                                var c = bw ? "plain" : "html";
-                                contentType = $"Content-Type: text/{c}; charset=UTF-8";
+                                Action<string> writeStr = s =>
+                                {
+                                    var sbuf = Encoding.UTF8.GetBytes(s);
+                                    var lbuf = Encoding.ASCII.GetBytes($"{sbuf.Length:X}\n");
+                                    net.Write(lbuf, 0, lbuf.Length);
+                                    net.Write(sbuf, 0, sbuf.Length);
+                                    net.Write(new byte[] { 10 }, 0, 1);
+                                };
+
+                                var logOut = new LogOutput(writeStr, newLines, bw ? null : colorMappings);
+
+                                contentType = logOut.ContentType;
                                 Write(net, $"HTTP/1.1 200 OK\nAccess-Control-Allow-Origin: *\n{contentType}\nTransfer-Encoding: Chunked\n\n", null);
 
                                 var serverPath = Bender.ReadServerPath(file, fileMappings);
                                 var server = serverPath.Item1;
                                 var path = serverPath.Item2;
 
-                                Action<byte[], int> writeChunk = (bytes, i) =>
-                                {
-                                    var b = Encoding.ASCII.GetBytes($"{i:X}\n");
-                                    net.Write(b, 0, b.Length);
-                                    net.Write(bytes, 0, i);
-                                    net.Write(new byte[] { 10 }, 0, 1);
-                                };
-
-                                Action<string> writeStr = s =>
-                                {
-                                    var b = Encoding.UTF8.GetBytes(s);
-                                    writeChunk(b, b.Length);
-                                };
-
-                                if (!bw)
-                                {
-                                    writeStr("<html><body style=\"background-color:#000000;color:#FFC200\"><pre>");
-                                }
-
-                                var changeColour = false;
-
                                 FileTailer.Tail(server, path, int.Parse(lines), int.Parse(tail) > 0, (bytes, i) =>
                                 {
-                                    if (newLines || !bw)
-                                    {
-                                        var s = Encoding.UTF8.GetString(bytes, 0, i);
-
-                                        if (!bw)
-                                        {
-                                            s = HttpUtility.HtmlEncode(s);
-
-                                            foreach (var kvp in colorMappings)
-                                            {
-                                                s = kvp.Key.Replace(s, $"<span style=\"color:{kvp.Value}\">$0</span>");
-                                            }
-
-                                            var sb = new StringBuilder();
-                                            var start = 0;
-
-                                            while (true)
-                                            {
-                                                var end = s.IndexOf("\r\n", start);
-                                                var end2 = s.IndexOf((char)10, start);
-
-                                                if (end != -1 && end2 != -1)
-                                                {
-                                                    if (end < end2)
-                                                    {
-                                                        end += 2;
-                                                    }
-                                                    else
-                                                    {
-                                                        end = end2 + 1;
-                                                    }
-                                                }
-                                                else if (end2 != -1)
-                                                {
-                                                    end = end2 + 1;
-                                                }
-                                                else if (end != -1)
-                                                {
-                                                    end += 2;
-                                                }
-
-                                                var sub = s.Substring(start, end == -1 ? s.Length - start : end - start);
-                                                if (string.IsNullOrEmpty(sub))
-                                                {
-                                                    break;
-                                                }
-
-                                                if (changeColour)
-                                                {
-                                                    sub = $"<span style=\"color:BD8000\">{sub}</span>";
-                                                }
-
-                                                sb.Append(sub);
-
-                                                if (end == -1)
-                                                {
-                                                    break;
-                                                }
-                                                else
-                                                {
-                                                    start = end;
-                                                    changeColour = !changeColour;
-                                                }
-                                            }
-
-                                            s = sb.ToString();
-                                        }
-
-                                        if (newLines)
-                                        {
-                                            s = s.Replace("||", "\r");
-                                        }
-
-                                        bytes = Encoding.UTF8.GetBytes(s);
-                                        i = bytes.Length;
-                                    }
-
-                                    writeChunk(bytes, i);
+                                    logOut.Add(bytes, 0, i);
                                 });
 
-                                if (!bw)
-                                {
-                                    writeStr("</pre></body><html>");
-                                }
+                                logOut.End();
 
                                 net.Write(new byte[] { (byte)'0', 10, 10 }, 0, 3);
                                 methodKnown = false;
