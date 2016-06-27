@@ -33,8 +33,8 @@ namespace Bender
             _pattern = pattern;
 
             Rehash();
-
         }
+
         public void Rehash()
         {
             var pos = Position;
@@ -47,7 +47,6 @@ namespace Bender
             {
                 throw new InvalidOperationException($"Failed to get files in pattern '{_pattern}'", e);
             }
-
 
             if (fileinfos.Count == 0)
             {

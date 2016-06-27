@@ -38,6 +38,7 @@ namespace Bender
                     try
                     {
                         string type = string.Empty;
+
                         while (true)
                         {
                             var line = Bender.ReadLine(net);
@@ -182,6 +183,9 @@ namespace Bender
                         }
                         else
                         {
+                            body = null;
+                            contentType = null;
+
                             var param = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                             var index = commandString.IndexOf('?');
                             if (index != -1)
@@ -240,8 +244,6 @@ namespace Bender
                                 logOut.End();
 
                                 writeChunkedStr(string.Empty);
-                                methodKnown = false;
-                                continue;
                             }
                             else if (commandString.Equals("/stack", StringComparison.OrdinalIgnoreCase))
                             {
@@ -254,7 +256,30 @@ namespace Bender
                                 Write(net, $"HTTP/1.1 200 OK\nAccess-Control-Allow-Origin: *\n{contentType}\nTransfer-Encoding: Chunked\n\n", null);
                                 logOut.Add(str);
                                 logOut.End();
-                                break;
+                            }
+                            else if (commandString.Equals("/wer", StringComparison.OrdinalIgnoreCase))
+                            {
+                                var output = new MemoryStream();
+                                StackTrace.OpenWerDump(null, output, param["exe"]);
+                                var str = Encoding.UTF8.GetString(output.ToArray());
+                                var logOut = new LogOutput(writeChunkedStr, false, bw ? null : colorMappings);
+
+                                contentType = logOut.ContentType;
+                                Write(net, $"HTTP/1.1 200 OK\nAccess-Control-Allow-Origin: *\n{contentType}\nTransfer-Encoding: Chunked\n\n", null);
+                                logOut.Add(str);
+                                logOut.End();
+                            }
+                            else if (commandString.Equals("/get"))
+                            {
+                                var logOut = new LogOutput(writeChunkedStr, false, bw ? null : colorMappings);
+                                var output = new MemoryStream();
+                                var serverPath = Bender.ReadServerPath(param["uri"], fileMappings);
+                                var server = serverPath.Item1;
+                                var path = serverPath.Item2;
+                                FetchUri.Fetch(path, output);
+                                var str = Encoding.UTF8.GetString(output.ToArray());
+                                logOut.Add(str);
+                                logOut.End();
                             }
                             else
                             {
@@ -274,8 +299,11 @@ namespace Bender
                         throw;
                     }
 
-                    var header = $"HTTP/1.1 200 OK\nAccess-Control-Allow-Origin: *\n{contentType}\nContent-Length: {body.Length}\n\n";
-                    Write(net, header, body);
+                    if (contentType != null && body != null)
+                    {
+                        var header = $"HTTP/1.1 200 OK\nAccess-Control-Allow-Origin: *\n{contentType}\nContent-Length: {body.Length}\n\n";
+                        Write(net, header, body);
+                    }
                     methodKnown = false;
                 }
             }
