@@ -278,6 +278,8 @@ namespace Bender
                                 var path = serverPath.Item2;
                                 FetchUri.Fetch(path, output);
                                 var str = Encoding.UTF8.GetString(output.ToArray());
+                                contentType = logOut.ContentType;
+                                Write(net, $"HTTP/1.1 200 OK\nAccess-Control-Allow-Origin: *\n{contentType}\nTransfer-Encoding: Chunked\n\n", null);
                                 logOut.Add(str);
                                 logOut.End();
                             }
