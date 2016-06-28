@@ -186,32 +186,31 @@ namespace Bender
                             body = null;
                             contentType = null;
 
-                            var param = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                             var index = commandString.IndexOf('?');
+                            var paramString = string.Empty;
                             if (index != -1)
                             {
-                                foreach (var entry in commandString.Substring(1 + index).Split('&'))
-                                {
-                                    var line = entry.Split('=');
-                                    if (line.Length == 2)
-                                    {
-                                        param[line[0]] = line[1];
-                                    }
-                                }
-
+                                paramString = commandString.Substring(index + 1);
                                 commandString = commandString.Substring(0, index);
                             }
 
-                            var bw = !param.ContainsKey("bw") || param["bw"] != "0";
-                            var scroll = !param.ContainsKey("scroll") || param["scroll"] != "0";
-
                             if (commandString.Equals("/log", StringComparison.OrdinalIgnoreCase))
                             {
+                                var defaults = "lines=80&tail=0&scroll=1&bw=1&newlines=1";
+                                var location = string.Empty;
+                                var param = ParseParams(paramString, string.Empty);
+                                if (param.Count == 1 && param.ContainsKey("file"))
+                                {
+                                    location = commandString + "?" + paramString + "&" + defaults;
+                                }
+                                param = ParseParams(paramString, defaults);
+                                var bw = param["bw"] != "0";
+                                var scroll = param["scroll"] != "0";
                                 var file = param.ContainsKey("file") ? param["file"] : null;
                                 var lines = param.ContainsKey("lines") ? param["lines"] : (param.ContainsKey("val") ? param["val"] : "40");
-                                var tail = param.ContainsKey("tail") ? param["tail"] : "0";
+                                var tail = param["tail"];
 
-                                var newLines = param.ContainsKey("newlines") && param["newlines"] != "0";
+                                var newLines = param["newlines"] != "0";
 
                                 if (lines == "-f")
                                 {
@@ -222,7 +221,7 @@ namespace Bender
                                 var serverPath = Bender.ReadServerPath(file, fileMappings);
                                 var server = serverPath.Item1;
                                 var path = serverPath.Item2;
-                                var logOut = new LogOutput(net, path, newLines, scroll, bw ? null : colorMappings);
+                                var logOut = new LogOutput(net, path, location, newLines, scroll, bw ? null : colorMappings);
 
                                 FileTailer.Tail(server, path, int.Parse(lines), int.Parse(tail) > 0, (bytes, i) =>
                                 {
@@ -235,6 +234,8 @@ namespace Bender
                             {
                                 var output = new MemoryStream();
                                 var title = string.Empty;
+
+                                var param = ParseParams(paramString, string.Empty);
 
                                 if (commandString.Equals("/stack", StringComparison.OrdinalIgnoreCase))
                                 {
@@ -258,7 +259,7 @@ namespace Bender
                                 if (output.Length > 0)
                                 {
                                     var str = Encoding.UTF8.GetString(output.ToArray());
-                                    var logOut = new LogOutput(net, title, false, scroll, bw ? null : colorMappings);
+                                    var logOut = new LogOutput(net, title, string.Empty, false, false, null);
                                     logOut.Add(str);
                                     logOut.End();
                                 }
@@ -289,6 +290,22 @@ namespace Bender
                     methodKnown = false;
                 }
             }
+        }
+
+        private static Dictionary<string, string> ParseParams(string paramString, string defaultString)
+        {
+            var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var entry in (defaultString + "&" + paramString).Split('&'))
+            {
+                var line = entry.Split('=');
+                if (line.Length == 2)
+                {
+                    result[line[0]] = line[1];
+                }
+            }
+
+            return result;
         }
 
         private static void Write(Stream net, string header, byte[] body)

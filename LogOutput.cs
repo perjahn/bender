@@ -23,13 +23,16 @@ namespace Bender
 
         private readonly string _title;
 
-        public LogOutput(Stream net, string title, bool newline, bool scroll, Dictionary<Regex, string> colorMappings)
+        private readonly string _location;
+
+        public LogOutput(Stream net, string title, string location, bool newline, bool scroll, Dictionary<Regex, string> colorMappings)
         {
             _net = net;
             _colorMappings = colorMappings;
             _newline = newline;
             _scroll = scroll;
             _title = title;
+            _location = location;
 
             Write($"HTTP/1.1 200 OK\nAccess-Control-Allow-Origin: *\n{ContentType}\nTransfer-Encoding: Chunked\nX-Accel-Buffering: no\n\n");
         }
@@ -53,9 +56,14 @@ namespace Bender
         {
             if (_first)
             {
-                var clrString = _colorMappings == null ? "style =\"background-color:#FFFFFF;color:#000000\"" : "style =\"background-color:#000000;color:#FFC200\"";
+                var colorString = _colorMappings == null ? "style =\"background-color:#FFFFFF;color:#000000\"" : "style =\"background-color:#000000;color:#FFC200\"";
 
-                WriteChunked($"<html><head><title>{HttpUtility.HtmlEncode(_title)}</title></head><body {clrString}><pre>");
+                WriteChunked($"<html><head><title>{HttpUtility.HtmlEncode(_title)}</title></head><body {colorString}><pre>");
+
+                if (!string.IsNullOrEmpty(_location))
+                {
+                    WriteChunked($"<script type=\"text/javascript\">if (window.history.replaceState) window.history.replaceState(null, '{_title}', '{_location}');</script>");
+                }
 
                 _first = false;
             }
