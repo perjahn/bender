@@ -253,7 +253,7 @@ namespace Bender
                                     var server = serverPath.Item1;
                                     var path = serverPath.Item2;
                                     FetchUri.Fetch(path, output);
-                                    title = $"GET {param["uri"]}";
+                                    title = $"GET {path}";
                                 }
 
                                 if (output.Length > 0)

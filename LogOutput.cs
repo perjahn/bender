@@ -75,7 +75,7 @@ namespace Bender
 
                 if (!string.IsNullOrEmpty(_appendLocation))
                 {
-                    WriteBody($"<script type=\"text/javascript\">if (window.history.replaceState) window.history.replaceState({{}}, '{_title}', window.location.href + '{_appendLocation}');</script>");
+                    WriteBody($"<script type=\"text/javascript\">if (window.history.replaceState) window.history.replaceState({{}}, '{HttpUtility.HtmlEncode(_title)}', window.location.href + '{_appendLocation}');</script>");
                 }
 
                 _first = false;
