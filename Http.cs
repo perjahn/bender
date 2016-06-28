@@ -203,6 +203,7 @@ namespace Bender
                             }
 
                             var bw = !param.ContainsKey("bw") || param["bw"] != "0";
+                            var scroll = !param.ContainsKey("scroll") || param["scroll"] != "0";
 
                             if (commandString.Equals("/log", StringComparison.OrdinalIgnoreCase))
                             {
@@ -221,7 +222,7 @@ namespace Bender
                                 var serverPath = Bender.ReadServerPath(file, fileMappings);
                                 var server = serverPath.Item1;
                                 var path = serverPath.Item2;
-                                var logOut = new LogOutput(net, path, newLines, bw ? null : colorMappings);
+                                var logOut = new LogOutput(net, path, newLines, scroll, bw ? null : colorMappings);
 
                                 FileTailer.Tail(server, path, int.Parse(lines), int.Parse(tail) > 0, (bytes, i) =>
                                 {
@@ -230,46 +231,47 @@ namespace Bender
 
                                 logOut.End();
                             }
-                            else if (commandString.Equals("/stack", StringComparison.OrdinalIgnoreCase))
-                            {
-                                var output = new MemoryStream();
-                                StackTrace.DoManaged(null, output, Bender.GetPid2(param["exe"]));
-                                var str = Encoding.UTF8.GetString(output.ToArray());
-                                var logOut = new LogOutput(net, $"Stacktrace for {param["exe"]}", false, bw ? null : colorMappings);
-                                logOut.Add(str);
-                                logOut.End();
-                            }
-                            else if (commandString.Equals("/wer", StringComparison.OrdinalIgnoreCase))
-                            {
-                                var output = new MemoryStream();
-                                StackTrace.OpenWerDump(null, output, param["exe"]);
-                                var str = Encoding.UTF8.GetString(output.ToArray());
-                                var logOut = new LogOutput(net, $"Werstack for {param["exe"]}", false, bw ? null : colorMappings);
-
-                                logOut.Add(str);
-                                logOut.End();
-                            }
-                            else if (commandString.Equals("/get"))
-                            {
-                                var output = new MemoryStream();
-                                var serverPath = Bender.ReadServerPath(param["uri"], fileMappings);
-                                var server = serverPath.Item1;
-                                var path = serverPath.Item2;
-                                FetchUri.Fetch(path, output);
-                                var str = Encoding.UTF8.GetString(output.ToArray());
-                                var logOut = new LogOutput(net, $"GET {param["uri]"]}", false, bw ? null : colorMappings);
-                                logOut.Add(str);
-                                logOut.End();
-                            }
                             else
                             {
-                                contentType = "Content-Type: text/plain; charset=UTF-8";
-                                var sb = new StringBuilder();
-                                foreach (var h in headers)
+                                var output = new MemoryStream();
+                                var title = string.Empty;
+
+                                if (commandString.Equals("/stack", StringComparison.OrdinalIgnoreCase))
                                 {
-                                    sb.AppendLine(h);
+                                    StackTrace.DoManaged(null, output, Bender.GetPid2(param["exe"]));
+                                    title = $"Stacktrace for {param["exe"]}";
                                 }
-                                body = Encoding.UTF8.GetBytes(sb.ToString());
+                                else if (commandString.Equals("/wer", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    StackTrace.OpenWerDump(null, output, param["exe"]);
+                                    title = $"Werstack for {param["exe"]}";
+                                }
+                                else if (commandString.Equals("/get", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    var serverPath = Bender.ReadServerPath(param["uri"], fileMappings);
+                                    var server = serverPath.Item1;
+                                    var path = serverPath.Item2;
+                                    FetchUri.Fetch(path, output);
+                                    title = $"GET {param["uri]"]}";
+                                }
+
+                                if (output.Length > 0)
+                                {
+                                    var str = Encoding.UTF8.GetString(output.ToArray());
+                                    var logOut = new LogOutput(net, title, false, scroll, bw ? null : colorMappings);
+                                    logOut.Add(str);
+                                    logOut.End();
+                                }
+                                else
+                                {
+                                    contentType = "Content-Type: text/plain; charset=UTF-8";
+                                    var sb = new StringBuilder();
+                                    foreach (var h in headers)
+                                    {
+                                        sb.AppendLine(h);
+                                    }
+                                    body = Encoding.UTF8.GetBytes(sb.ToString());
+                                }
                             }
                         }
                     }

@@ -13,7 +13,9 @@ namespace Bender
 
         private readonly Dictionary<Regex, string> _colorMappings;
 
-        private readonly bool _nl;
+        private readonly bool _newline;
+
+        private readonly bool _scroll;
 
         private bool _first = true;
 
@@ -21,11 +23,12 @@ namespace Bender
 
         private readonly string _title;
 
-        public LogOutput(Stream net, string title, bool nl, Dictionary<Regex, string> colorMappings)
+        public LogOutput(Stream net, string title, bool newline, bool scroll, Dictionary<Regex, string> colorMappings)
         {
             _net = net;
             _colorMappings = colorMappings;
-            _nl = nl;
+            _newline = newline;
+            _scroll = scroll;
             _title = title;
 
             Write($"HTTP/1.1 200 OK\nAccess-Control-Allow-Origin: *\n{ContentType}\nTransfer-Encoding: Chunked\nX-Accel-Buffering: no\n\n");
@@ -86,14 +89,17 @@ namespace Bender
                     outs = $"<span style=\"color:{(_colorMappings == null ? "1F1FBF" : "BD8000")}\">{outs}</span>";
                 }
 
-                if (_nl)
+                if (_newline)
                 {
                     outs = outs.Replace("||", "\r");
                 }
 
                 WriteChunked(outs);
 
-                WriteChunked("<script type=\"text/javascript\">window.scrollTo(0,document.body.scrollHeight);</script>\r");
+                if (_scroll)
+                {
+                    WriteChunked("<script type=\"text/javascript\">window.scrollTo(0,document.body.scrollHeight);</script>");
+                }
 
                 if (end == -1) break;
 
