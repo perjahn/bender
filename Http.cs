@@ -204,15 +204,6 @@ namespace Bender
 
                             var bw = !param.ContainsKey("bw") || param["bw"] != "0";
 
-                            Action<string> writeChunkedStr = s =>
-                            {
-                                var sbuf = Encoding.UTF8.GetBytes(s);
-                                var lbuf = Encoding.ASCII.GetBytes($"{sbuf.Length:X}\n");
-                                net.Write(lbuf, 0, lbuf.Length);
-                                net.Write(sbuf, 0, sbuf.Length);
-                                net.Write(new byte[] { 10 }, 0, 1);
-                            };
-
                             if (commandString.Equals("/log", StringComparison.OrdinalIgnoreCase))
                             {
                                 var file = param.ContainsKey("file") ? param["file"] : null;
@@ -227,14 +218,10 @@ namespace Bender
                                     tail = "1";
                                 }
 
-                                var logOut = new LogOutput(writeChunkedStr, newLines, bw ? null : colorMappings);
-
-                                contentType = logOut.ContentType;
-                                Write(net, $"HTTP/1.1 200 OK\nAccess-Control-Allow-Origin: *\n{contentType}\nTransfer-Encoding: Chunked\nX-Accel-Buffering: no\n\n", null);
-
                                 var serverPath = Bender.ReadServerPath(file, fileMappings);
                                 var server = serverPath.Item1;
                                 var path = serverPath.Item2;
+                                var logOut = new LogOutput(net, path, newLines, bw ? null : colorMappings);
 
                                 FileTailer.Tail(server, path, int.Parse(lines), int.Parse(tail) > 0, (bytes, i) =>
                                 {
@@ -242,49 +229,37 @@ namespace Bender
                                 });
 
                                 logOut.End();
-
-                                writeChunkedStr(string.Empty);
                             }
                             else if (commandString.Equals("/stack", StringComparison.OrdinalIgnoreCase))
                             {
                                 var output = new MemoryStream();
                                 StackTrace.DoManaged(null, output, Bender.GetPid2(param["exe"]));
                                 var str = Encoding.UTF8.GetString(output.ToArray());
-                                var logOut = new LogOutput(writeChunkedStr, false, bw ? null : colorMappings);
-
-                                contentType = logOut.ContentType;
-                                Write(net, $"HTTP/1.1 200 OK\nAccess-Control-Allow-Origin: *\n{contentType}\nTransfer-Encoding: Chunked\nX-Accel-Buffering: no\n\n", null);
+                                var logOut = new LogOutput(net, $"Stacktrace for {param["exe"]}", false, bw ? null : colorMappings);
                                 logOut.Add(str);
                                 logOut.End();
-                                writeChunkedStr(string.Empty);
                             }
                             else if (commandString.Equals("/wer", StringComparison.OrdinalIgnoreCase))
                             {
                                 var output = new MemoryStream();
                                 StackTrace.OpenWerDump(null, output, param["exe"]);
                                 var str = Encoding.UTF8.GetString(output.ToArray());
-                                var logOut = new LogOutput(writeChunkedStr, false, bw ? null : colorMappings);
+                                var logOut = new LogOutput(net, $"Werstack for {param["exe"]}", false, bw ? null : colorMappings);
 
-                                contentType = logOut.ContentType;
-                                Write(net, $"HTTP/1.1 200 OK\nAccess-Control-Allow-Origin: *\n{contentType}\nTransfer-Encoding: Chunked\nX-Accel-Buffering: no\n\n", null);
                                 logOut.Add(str);
                                 logOut.End();
-                                writeChunkedStr(string.Empty);
                             }
                             else if (commandString.Equals("/get"))
                             {
-                                var logOut = new LogOutput(writeChunkedStr, false, bw ? null : colorMappings);
                                 var output = new MemoryStream();
                                 var serverPath = Bender.ReadServerPath(param["uri"], fileMappings);
                                 var server = serverPath.Item1;
                                 var path = serverPath.Item2;
                                 FetchUri.Fetch(path, output);
                                 var str = Encoding.UTF8.GetString(output.ToArray());
-                                contentType = logOut.ContentType;
-                                Write(net, $"HTTP/1.1 200 OK\nAccess-Control-Allow-Origin: *\n{contentType}\nTransfer-Encoding: Chunked\nX-Accel-Buffering: no\n\n", null);
+                                var logOut = new LogOutput(net, $"GET {param["uri]"]}", false, bw ? null : colorMappings);
                                 logOut.Add(str);
                                 logOut.End();
-                                writeChunkedStr(string.Empty);
                             }
                             else
                             {
