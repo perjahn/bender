@@ -150,6 +150,7 @@ namespace Bender
                         if (local == 0)
                         {
                             eol = cr;
+                            --absolutePos;
                         }
                         else if (buf[i] == 13)
                         {
@@ -190,7 +191,7 @@ namespace Bender
                     }
                 }
 
-                if (readFromStart || lines.Count > lc * 2)
+                if (readFromStart || lines.Count >= lc * 2)
                 {
                     // Read whole file or found all lines
                     break;
