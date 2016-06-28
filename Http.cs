@@ -196,18 +196,18 @@ namespace Bender
 
                             if (commandString.Equals("/log", StringComparison.OrdinalIgnoreCase))
                             {
-                                var defaults = "lines=80&tail=0&scroll=1&bw=1&newlines=1";
-                                var location = string.Empty;
+                                const string defaults = "lines=80&tail=0&scroll=1&bw=1&newlines=1";
+                                var appendLocation = string.Empty;
                                 var param = ParseParams(paramString, string.Empty);
                                 if (param.Count == 1 && param.ContainsKey("file"))
                                 {
-                                    location = commandString + "?" + paramString + "&" + defaults;
+                                    appendLocation = "&" + defaults;
                                 }
                                 param = ParseParams(paramString, defaults);
                                 var bw = param["bw"] != "0";
                                 var scroll = param["scroll"] != "0";
                                 var file = param.ContainsKey("file") ? param["file"] : null;
-                                var lines = param.ContainsKey("lines") ? param["lines"] : (param.ContainsKey("val") ? param["val"] : "40");
+                                var lines = param.ContainsKey("val") ? param["val"] : param["lines"];
                                 var tail = param["tail"];
 
                                 var newLines = param["newlines"] != "0";
@@ -221,7 +221,7 @@ namespace Bender
                                 var serverPath = Bender.ReadServerPath(file, fileMappings);
                                 var server = serverPath.Item1;
                                 var path = serverPath.Item2;
-                                var logOut = new LogOutput(net, path, location, newLines, scroll, bw ? null : colorMappings);
+                                var logOut = new LogOutput(net, path, appendLocation, newLines, scroll, bw ? null : colorMappings);
 
                                 FileTailer.Tail(server, path, int.Parse(lines), int.Parse(tail) > 0, (bytes, i) =>
                                 {

@@ -23,16 +23,16 @@ namespace Bender
 
         private readonly string _title;
 
-        private readonly string _location;
+        private readonly string _appendLocation;
 
-        public LogOutput(Stream net, string title, string location, bool newline, bool scroll, Dictionary<Regex, string> colorMappings)
+        public LogOutput(Stream net, string title, string appendLocation, bool newline, bool scroll, Dictionary<Regex, string> colorMappings)
         {
             _net = net;
             _colorMappings = colorMappings;
             _newline = newline;
             _scroll = scroll;
             _title = title;
-            _location = location;
+            _appendLocation = appendLocation;
 
             Write($"HTTP/1.1 200 OK\nAccess-Control-Allow-Origin: *\n{ContentType}\nTransfer-Encoding: Chunked\nX-Accel-Buffering: no\n\n");
         }
@@ -60,9 +60,9 @@ namespace Bender
 
                 WriteChunked($"<html><head><title>{HttpUtility.HtmlEncode(_title)}</title></head><body {colorString}><pre>");
 
-                if (!string.IsNullOrEmpty(_location))
+                if (!string.IsNullOrEmpty(_appendLocation))
                 {
-                    WriteChunked($"<script type=\"text/javascript\">if (window.history.replaceState) window.history.replaceState(null, '{_title}', '{_location}');</script>");
+                    WriteChunked($"<script type=\"text/javascript\">if (window.history.replaceState) window.history.replaceState({{}}, '{_title}', window.location.href + '{_appendLocation}');</script>");
                 }
 
                 _first = false;
