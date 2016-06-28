@@ -53,7 +53,10 @@ namespace Bender
 
         public static void Tail(string server, string path, int count, bool tail, Stream output)
         {
-            Tail(server, path, count, tail, (buf, length) => output.Write(buf, 0, length));
+            Tail(server, path, count, tail, (buf, length) =>
+            {
+                if (length > 0) output.Write(buf, 0, length);
+            });
         }
 
         private static bool CheckRegex(byte[] buf, Regex regex, ref long beg, ref long end)
@@ -146,50 +149,46 @@ namespace Bender
                 while (true)
                 {
                     int local = fs.Read(buf, 0, buf.Length);
-                    var eol = false;
-                    for (int i = 0; ; ++i)
+
+                    if (local == 0)
                     {
-                        if (local == 0)
+                        if (cr)
                         {
-                            eol = cr;
-                            --absolutePos;
+                            CheckRegex(fs, lastLine, absolutePos, regex, lines);
+                            lastLine = absolutePos;
                         }
-                        else if (buf[i] == 13)
+
+                        break;
+                    }
+
+                    for (int i = 0; i < local; ++i)
+                    {
+                        if (buf[i] == 13)
                         {
+                            // EOLed at previous line
                             if (cr)
                             {
-                                eol = true;
+                                CheckRegex(fs, lastLine, absolutePos, regex, lines);
+                                lastLine = absolutePos;
                             }
 
                             cr = true;
                         }
                         else if (buf[i] == 10)
                         {
+                            CheckRegex(fs, lastLine, absolutePos + 1, regex, lines);
+                            lastLine = absolutePos + 1;
                             cr = false;
-
-                            eol = true;
+                        }
+                        else if (cr)
+                        {
+                            // EOLed at previous lines
+                            CheckRegex(fs, lastLine, absolutePos, regex, lines);
+                            lastLine = absolutePos;
+                            cr = false;
                         }
 
                         ++absolutePos;
-
-                        if (eol)
-                        {
-                            eol = false;
-
-                            CheckRegex(fs, lastLine, absolutePos, regex, lines);
-
-                            lastLine = absolutePos;
-                        }
-
-                        if (i >= local - 1)
-                        {
-                            break;
-                        }
-                    }
-
-                    if (local == 0)
-                    {
-                        break;
                     }
                 }
 
