@@ -29,6 +29,8 @@ namespace Bender
                     {
                         GetStrings(logStream, count, output, regex);
 
+                        output(null, 0);
+
                         if (tail)
                         {
                             logStream.WaitForChanges(1000);
