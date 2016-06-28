@@ -191,9 +191,9 @@ namespace Bender
                     }
                 }
 
-                if (readFromStart || lines.Count >= lc * 2)
+                if (readFromStart || lc == 0 || lines.Count > lc * 2)
                 {
-                    // Read whole file or found all lines
+                    // Read whole file or found all lines. For the third exit condition, note that partial lines are considered, so more lines than expected need to be read.
                     break;
                 }
 
