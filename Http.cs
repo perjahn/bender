@@ -196,7 +196,7 @@ namespace Bender
 
                             if (commandString.Equals("/log", StringComparison.OrdinalIgnoreCase))
                             {
-                                const string defaults = "lines=80&tail=0&scroll=1&bw=1&newlines=1";
+                                const string defaults = "lines=80&tail=0&scroll=1&bw=1&newlines=1&text=0";
                                 var appendLocation = string.Empty;
                                 var param = ParseParams(paramString, string.Empty);
                                 if (param.Count == 1 && param.ContainsKey("file"))
@@ -209,6 +209,7 @@ namespace Bender
                                 var file = param.ContainsKey("file") ? param["file"] : null;
                                 var lines = param.ContainsKey("val") ? param["val"] : param["lines"];
                                 var tail = param["tail"];
+                                var text = param["text"] != "0";
 
                                 var newLines = param["newlines"] != "0";
 
@@ -221,7 +222,7 @@ namespace Bender
                                 var serverPath = Bender.ReadServerPath(file, fileMappings);
                                 var server = serverPath.Item1;
                                 var path = serverPath.Item2;
-                                var logOut = new LogOutput(net, path, appendLocation, newLines, scroll, bw ? null : colorMappings);
+                                var logOut = new LogOutput(net, new LogOutput.Format { AppendLocation = appendLocation, ColorMappings = bw ? null : colorMappings, Scroll = scroll, NewLine = newLines, Title = path, PlainText = text });
 
                                 FileTailer.Tail(server, path, int.Parse(lines), int.Parse(tail) > 0, (bytes, i) =>
                                 {
@@ -259,7 +260,7 @@ namespace Bender
                                 if (output.Length > 0)
                                 {
                                     var str = Encoding.UTF8.GetString(output.ToArray());
-                                    var logOut = new LogOutput(net, title, string.Empty, false, false, null);
+                                    var logOut = new LogOutput(net, new LogOutput.Format { Title = title, PlainText = true });
                                     logOut.Add(str);
                                     logOut.End();
                                 }

@@ -23,20 +23,43 @@ namespace Bender
 
         private readonly string _title;
 
+        private readonly bool _plainText;
+
         private readonly string _appendLocation;
 
         private readonly StringBuilder _body = new StringBuilder();
 
-        public LogOutput(Stream net, string title, string appendLocation, bool newline, bool scroll, Dictionary<Regex, string> colorMappings)
+        public LogOutput(Stream net, Format fmt)
         {
             _net = net;
-            _colorMappings = colorMappings;
-            _newline = newline;
-            _scroll = scroll;
-            _title = title;
-            _appendLocation = appendLocation;
+            _colorMappings = fmt.ColorMappings;
+            _newline = fmt.NewLine;
+            _scroll = fmt.Scroll;
+            _title = fmt.Title;
+            _appendLocation = fmt.AppendLocation;
+            _plainText = fmt.PlainText;
+            if (_plainText)
+            {
+                _scroll = false;
+                _colorMappings = null;
+            }
 
             WriteNet($"HTTP/1.1 200 OK\nAccess-Control-Allow-Origin: *\n{ContentType}\nTransfer-Encoding: Chunked\nX-Accel-Buffering: no\n\n");
+        }
+
+        public class Format
+        {
+            public bool NewLine = true;
+
+            public bool Scroll = true;
+
+            public string Title;
+
+            public string AppendLocation;
+
+            public Dictionary<Regex, string> ColorMappings;
+
+            public bool PlainText;
         }
 
         private void WriteBody(string s)
@@ -69,21 +92,27 @@ namespace Bender
 
             if (_first)
             {
-                var colorString = _colorMappings == null ? "style =\"background-color:#FFFFFF;color:#000000\"" : "style =\"background-color:#000000;color:#FFC200\"";
-
-                WriteBody($"<html><head><title>{HttpUtility.HtmlEncode(_title)}</title></head><body {colorString}><pre>");
-
-                if (!string.IsNullOrEmpty(_appendLocation))
+                if (!_plainText)
                 {
-                    WriteBody($"<script type=\"text/javascript\">if (window.history.replaceState) window.history.replaceState({{}}, '{HttpUtility.HtmlEncode(_title)}', window.location.href + '{_appendLocation}');</script>");
-                }
+                    var colorString = _colorMappings == null ? "style =\"background-color:#FFFFFF;color:#000000\"" : "style =\"background-color:#000000;color:#FFC200\"";
 
+                    WriteBody($"<html><head><title>{HttpUtility.HtmlEncode(_title)}</title></head><body {colorString}><pre>");
+
+                    if (!string.IsNullOrEmpty(_appendLocation))
+                    {
+                        WriteBody($"<script type=\"text/javascript\">if (window.history.replaceState) window.history.replaceState({{}}, '{HttpUtility.HtmlEncode(_title)}', window.location.href + '{_appendLocation}');</script>");
+                    }
+
+                }
                 _first = false;
             }
 
             s = s.Replace("\r", string.Empty);
 
-            s = HttpUtility.HtmlEncode(s);
+            if (!_plainText)
+            {
+                s = HttpUtility.HtmlEncode(s);
+            }
 
             var start = 0;
 
@@ -105,7 +134,7 @@ namespace Bender
                     }
                 }
 
-                if (_changeCol)
+                if (_changeCol && !_plainText)
                 {
                     outs = $"<span style=\"color:{(_colorMappings == null ? "1F1FBF" : "BD8000")}\">{outs}</span>";
                 }
@@ -131,7 +160,7 @@ namespace Bender
 
         public void End()
         {
-            if (!_first)
+            if (!_first && !_plainText)
             {
                 WriteBody("</pre></body></html>");
             }
@@ -154,6 +183,6 @@ namespace Bender
             }
         }
 
-        public string ContentType => "Content-Type: text/html; charset=UTF-8";
+        public string ContentType => $"Content-Type: text/{(_plainText ? "plain" : "html")}; charset=UTF-8";
     }
 }
