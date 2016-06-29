@@ -43,9 +43,9 @@ namespace Bender
                 _colorMappings = null;
             }
 
-            WriteNet($"HTTP/1.1 200 OK\nAccess-Control-Allow-Origin: *\n{ContentType}\nTransfer-Encoding: Chunked\nX-Accel-Buffering: no\n\n");
+            WriteNet($"HTTP/1.1 200 OK\nAccess-Control-Allow-Origin: *\n{ContentType}\nTransfer-Encoding: Chunked\nX-Accel-Buffering: no\nCache-Control: no-cache, no-store, must-revalidate\nPragma: no-cache\nExpires: 0\n\n");
         }
-
+        
         public class Format
         {
             public bool NewLine = true;
