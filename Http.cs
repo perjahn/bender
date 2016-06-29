@@ -257,9 +257,10 @@ namespace Bender
                                     title = $"GET {path}";
                                 }
 
-                                if (output.Length > 0)
+                                var arr = output.ToArray();
+                                if (arr.Length > 0)
                                 {
-                                    var str = Encoding.UTF8.GetString(output.ToArray());
+                                    var str = Encoding.UTF8.GetString(arr);
                                     var logOut = new LogOutput(net, new LogOutput.Format { Title = title, PlainText = true });
                                     logOut.Add(str);
                                     logOut.End();
