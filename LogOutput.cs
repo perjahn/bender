@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -19,7 +18,7 @@ namespace Bender
 
         private bool _first = true;
 
-        private bool _changeCol = false;
+        private bool _changeCol;
 
         private readonly string _title;
 
@@ -100,7 +99,7 @@ namespace Bender
 
                     if (!string.IsNullOrEmpty(_appendLocation))
                     {
-                        WriteBody($"<script type=\"text/javascript\">if (window.history.replaceState) window.history.replaceState({{}}, '{HttpUtility.HtmlEncode(_title)}', window.location.href + '{_appendLocation}');</script>");
+                        WriteBody($"<script type=\"text/javascript\">if (window.history.replaceState) window.history.replaceState({{}}, '{HttpUtility.JavaScriptStringEncode(_title)}', window.location.href + '{HttpUtility.JavaScriptStringEncode(_appendLocation)}');</script>");
                     }
 
                 }
