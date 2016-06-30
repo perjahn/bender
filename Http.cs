@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -198,12 +199,13 @@ namespace Bender
                             {
                                 const string defaults = "lines=80&tail=0&scroll=1&bw=1&newlines=1&text=0";
                                 var appendLocation = string.Empty;
-                                var param = ParseParams(paramString, string.Empty);
-                                if (param.Count == 1 && param.ContainsKey("file"))
+
+                                if (!ParseParams(paramString, string.Empty).Keys.Intersect(ParseParams(defaults, string.Empty).Keys).Any())
                                 {
                                     appendLocation = "&" + defaults;
                                 }
-                                param = ParseParams(paramString, defaults);
+
+                                var param = ParseParams(paramString, defaults);
                                 var bw = param["bw"] != "0";
                                 var scroll = param["scroll"] != "0";
                                 var file = param.ContainsKey("file") ? param["file"] : null;
@@ -220,7 +222,7 @@ namespace Bender
                                 }
 
                                 var serverPath = Bender.ReadServerPath(file, fileMappings);
-                                var server = serverPath.Item1;
+                                var server = param.ContainsKey("server") ? param["server"] : serverPath.Item1;
                                 var path = serverPath.Item2;
                                 var logOut = new LogOutput(net, new LogOutput.Format { AppendLocation = appendLocation, ColorMappings = bw ? null : colorMappings, Scroll = scroll, NewLine = newLines, Title = path, PlainText = text });
 

@@ -313,7 +313,7 @@ namespace Bender
             base.Close();
         }
 
-        private class Fi
+        public class Fi
         {
             public string Name;
             public long Size;
@@ -336,31 +336,39 @@ namespace Bender
             }
         }
 
+        public static List<Fi> GetLocalFileInfos(string pattern)
+        {
+            var fis = new List<Fi>();
+            Fi emptyFileInfo = null;
+
+            foreach (var f in Directory.GetFiles(Path.GetDirectoryName(pattern), Path.GetFileName(pattern)))
+            {
+                var fi = new Fi(new FileInfo(f));
+                if (fi.Size > 0)
+                {
+                    fis.Add(fi);
+                }
+                else if (emptyFileInfo == null)
+                {
+                    emptyFileInfo = fi;
+                }
+            }
+
+            if (fis.Count == 0 && emptyFileInfo != null)
+            {
+                fis.Add(emptyFileInfo);
+            }
+
+            return fis;
+        }
+
         private List<Fi> GetFileInfos()
         {
             var fis = new List<Fi>();
 
             if (string.IsNullOrEmpty(_host))
             {
-                Fi emptyFileInfo = null;
-
-                foreach (var f in Directory.GetFiles(Path.GetDirectoryName(_pattern), Path.GetFileName(_pattern)))
-                {
-                    var fi = new Fi(new FileInfo(f));
-                    if (fi.Size > 0)
-                    {
-                        fis.Add(fi);
-                    }
-                    else if (emptyFileInfo == null)
-                    {
-                        emptyFileInfo = fi;
-                    }
-                }
-
-                if (fis.Count == 0 && emptyFileInfo != null)
-                {
-                    fis.Add(emptyFileInfo);
-                }
+                return GetLocalFileInfos(_pattern);
             }
             else
             {
@@ -372,7 +380,7 @@ namespace Bender
                     var lines = new StreamReader(stm).ReadToEnd().Split('\n');
 
                     // -rw------- 1 root root 169622 2016-04-10 03:20:01.945336135 +0000 /var/log/messages-20160410
-                    var re = new Regex(@"^[\-rwx]+\s+[0-9]+\s+[a-z_][a-z0-9_-]*\s+[a-z_][a-z0-9_-]*\s+(?<size>[0-9]+)\s+(?<date>[0-9]{4}-[0-9]{2}-[0-9]{2}\s[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]+\s[+\-][0-9]{4})\s(?<filename>.*$)", RegexOptions.CultureInvariant | RegexOptions.Compiled);
+                    var re = new Regex(@"^[\-rwx]+\s+[0-9]+\s+[a-z_][a-z0-9_-]*\s+[a-z_][a-z0-9_-]*\s+(?<size>[0-9]+)\s+(?<date>[0-9]{4}-[0-9]{2}-[0-9]{2}(T|\s)[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]+Z?(\s[+\-][0-9]{4})?)\s(?<filename>.*$)", RegexOptions.CultureInvariant | RegexOptions.Compiled);
                     foreach (var line in lines)
                     {
                         var match = re.Match(line);

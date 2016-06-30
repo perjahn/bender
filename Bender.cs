@@ -503,6 +503,23 @@ namespace Bender
                                 Remote.Do(peer, input, output);
                             }
                             break;
+                        case "ls":
+                            {
+                                foreach (var fi in LogStream.GetLocalFileInfos(ReadLine(input)))
+                                {
+                                    Write($"- 1 root root {fi.Size} {fi.Modification.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)} {fi.Name}\n", output);
+                                }
+                            }
+                            break;
+                        case "tailc":
+                            {
+                                using (var fs = new FileStream(ReadLine(input), FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                                {
+                                    fs.Position = long.Parse(ReadLine(input));
+                                    fs.CopyTo(output);
+                                }
+                            }
+                            break;
                         default:
                             if (line.StartsWith("get /"))
                             {
