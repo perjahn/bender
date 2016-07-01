@@ -406,7 +406,6 @@ namespace Bender
 
         private class Stm
         {
-            private long _pos;
             private long _privatePos;
             private FileStream _fs;
             private Stream _ns;
@@ -417,7 +416,7 @@ namespace Bender
             {
                 _server = server;
                 _path = path;
-                _pos = position;
+                Position = position;
 
                 if (string.IsNullOrEmpty(server))
                 {
@@ -445,17 +444,17 @@ namespace Bender
                 int result = 0;
                 if (_fs != null)
                 {
-                    if (_pos != _privatePos)
+                    if (Position != _privatePos)
                     {
-                        _fs.Seek(_pos, SeekOrigin.Begin);
-                        _privatePos = _pos;
+                        _fs.Seek(Position, SeekOrigin.Begin);
+                        _privatePos = Position;
                     }
                     result = _fs.Read(array, offset, count);
                 }
                 else
                 {
                     // tail -c - length
-                    if (_pos != _privatePos || _ns == null)
+                    if (Position != _privatePos || _ns == null)
                     {
                         // new command to read.
                         if (_ns != null)
@@ -465,7 +464,7 @@ namespace Bender
                         }
 
                         _ns = Remote.ConnectStream(_server);
-                        var s = "tailc\n" + _path + "\n" + _pos.ToString(System.Globalization.CultureInfo.InvariantCulture) + "\n";
+                        var s = "tailc\n" + _path + "\n" + Position.ToString(System.Globalization.CultureInfo.InvariantCulture) + "\n";
                         var b = System.Text.Encoding.ASCII.GetBytes(s);
                         _ns.Write(b, 0, b.Length);
                     }
@@ -483,23 +482,12 @@ namespace Bender
                     }
                 }
 
-                _pos += result;
+                Position += result;
                 _privatePos += result;
                 return result;
             }
 
-            public long Position
-            {
-                get
-                {
-                    return _pos;
-                }
-
-                set
-                {
-                    _pos = value;
-                }
-            }
+            public long Position { private get; set; }
         }
     }
 }

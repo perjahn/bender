@@ -50,8 +50,10 @@ namespace Bender
 
                 startRead = () =>
                 {
+                    // ReSharper disable once AccessToDisposedClosure
                     sock.BeginReceive(buf, 0, buf.Length, SocketFlags.None, ar =>
                     {
+                        // ReSharper disable once AccessToDisposedClosure
                         var read = sock.EndReceive(ar);
                         if (read == 0)
                         {
@@ -67,6 +69,8 @@ namespace Bender
                         else
                         {
                             output.Write(buf, 0, read);
+                            // ReSharper disable once PossibleNullReferenceException
+                            // ReSharper disable once AccessToModifiedClosure
                             startRead();
                         }
                     }, null);

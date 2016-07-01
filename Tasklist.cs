@@ -44,7 +44,7 @@ namespace Bender
 
         public static List<string> Age(TimeSpan ts)
         {
-            return new List<string>() { ts.TotalSeconds.ToString(CultureInfo.InvariantCulture), (ts - TimeSpan.FromMilliseconds(ts.Milliseconds)).ToString("g") };
+            return new List<string> { ts.TotalSeconds.ToString(CultureInfo.InvariantCulture), (ts - TimeSpan.FromMilliseconds(ts.Milliseconds)).ToString("g") };
         }
 
         public static void JavaScript(Stream wr)

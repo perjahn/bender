@@ -38,7 +38,7 @@ namespace Bender
                     bool readAnything = methodKnown;
                     try
                     {
-                        string type = string.Empty;
+                        var type = string.Empty;
 
                         while (true)
                         {
@@ -253,7 +253,7 @@ namespace Bender
                                 else if (commandString.Equals("/get", StringComparison.OrdinalIgnoreCase))
                                 {
                                     var serverPath = Bender.ReadServerPath(param["uri"], fileMappings);
-                                    var server = serverPath.Item1;
+                                    // var server = serverPath.Item1;
                                     var path = serverPath.Item2;
                                     FetchUri.Fetch(path, output);
                                     title = $"GET {path}";

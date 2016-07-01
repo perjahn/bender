@@ -30,11 +30,11 @@ namespace Bender
                 return;
             }
 
-            string fname = string.Format("{0}({1})_{2}.{3}", dump.ProcessName, dump.Id, DateTime.Now, fulldump ? "dmp" : "mdmp").Replace(':', '_').Replace('/', '_');
+            string fname = $"{dump.ProcessName}({dump.Id})_{DateTime.Now}.{(fulldump ? "dmp" : "mdmp")}".Replace(':', '_').Replace('/', '_');
 
             fname = Path.Combine(path, fname);
 
-            Bender.LogInfo(string.Format("Dumping {0}({1}) to {2}.", dump.ProcessName, dump.Id, fname));
+            Bender.LogInfo($"Dumping {dump.ProcessName}({dump.Id}) to {fname}.");
 
             using (var f = File.Open(fname, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.ReadWrite))
             {

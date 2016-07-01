@@ -25,6 +25,7 @@ namespace Bender
                 try
                 {
                     var req = WebRequest.Create(path) as HttpWebRequest;
+                    // ReSharper disable once PossibleNullReferenceException
                     req.UserAgent = "Mozilla/Bender";
                     response = req.GetResponse() as HttpWebResponse;
                 }
@@ -38,15 +39,14 @@ namespace Bender
                     {
                         using (var stm = response.GetResponseStream())
                         {
-                            var bytes = Encoding.ASCII.GetBytes(string.Format("HTTP/1.1 {0} {1}", (int)response.StatusCode, response.StatusDescription));
+                            var bytes = Encoding.ASCII.GetBytes($"HTTP/1.1 {(int) response.StatusCode} {response.StatusDescription}");
                             output.Write(bytes, 0, bytes.Length);
                             if (body)
                             {
                                 bytes = Encoding.ASCII.GetBytes("\r\n");
                                 output.Write(bytes, 0, bytes.Length);
-                                // ReSharper disable PossibleNullReferenceException
+                                // ReSharper disable once PossibleNullReferenceException
                                 stm.CopyTo(output);
-                                // ReSharper restore PossibleNullReferenceException
                             }
                         }
                     }

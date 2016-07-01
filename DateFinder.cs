@@ -143,10 +143,7 @@ namespace Bender
                     cr = lf = false;
                 }
 
-                if (bytes != null)
-                {
-                    bytes.Add(b);
-                }
+                bytes?.Add(b);
 
                 ++start;
             }

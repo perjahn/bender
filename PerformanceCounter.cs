@@ -20,7 +20,7 @@ namespace Bender
 
         private static readonly HashSet<string> Pending = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        private static Thread _worker = null;
+        private static Thread _worker;
 
         private static readonly Regex InstanceRegex = new Regex("^(?<instance>.+)_p(?<pid>[0-9]+)_r(?<ref>[0-9]+)$");
 

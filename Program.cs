@@ -15,7 +15,7 @@ namespace Bender
     {
         public ServiceShell()
         {
-            this.ServiceName = Program.ServiceName;
+            ServiceName = Program.ServiceName;
         }
 
         public static void Start()
@@ -198,7 +198,8 @@ namespace Bender
             {
                 try
                 {
-                    ServiceControllerStatus status = controller.Status;
+                    // ReSharper disable once UnusedVariable
+                    var status = controller.Status;
                 }
                 catch
                 {
@@ -257,6 +258,7 @@ namespace Bender
                     {
                         installer.Rollback(state);
                     }
+                    // ReSharper disable once EmptyGeneralCatchClause
                     catch { }
                     throw;
                 }
