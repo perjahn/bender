@@ -12,6 +12,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
+using Microsoft.Win32;
 
 namespace Bender
 {
@@ -458,6 +459,12 @@ namespace Bender
                         case "users":
                             {
                                 Shell.Do(peer, input, output, "query.exe", "user", false);
+                                break;
+                            }
+                        case "netrelease":
+                            {
+                                var release = Convert.ToInt64(Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full", "Release", null));
+                                Write(release.ToString(CultureInfo.InvariantCulture), output);
                                 break;
                             }
                         case "stacktrace":
