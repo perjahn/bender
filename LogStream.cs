@@ -231,7 +231,7 @@ namespace Bender
                         _currentStream = null;
                     }
                     _currentOffset = pos;
-                    _currentStream = new Stm(_host, fi.Name, value - _currentOffset);
+                    _currentStream = new Stm(_host, fi.Name, value - _currentOffset, fi.Size);
                     _pos = value;
                 }
             }
@@ -240,6 +240,7 @@ namespace Bender
         public override int Read(byte[] buffer, int offset, int count)
         {
             int read = 0;
+
             while (count > 0)
             {
                 if (_pos == _length)
@@ -248,10 +249,19 @@ namespace Bender
                 }
 
                 var local = (int)Math.Min(count, _current.Size - (_pos - _currentOffset));
+
                 if (local != 0)
                 {
                     var local2 = _currentStream.Read(buffer, offset, local);
-                    if (local != local2)
+
+                    if (_current.Size == long.MaxValue)
+                    {
+                        if (local2 == 0)
+                        {
+                            break;
+                        }
+                    }
+                    else if (local != local2)
                     {
                         throw new IOException("File layout changed.");
                     }
@@ -262,6 +272,7 @@ namespace Bender
                 offset += local;
                 read += local;
             }
+
             return read;
         }
 
@@ -380,19 +391,24 @@ namespace Bender
                     var lines = new StreamReader(stm).ReadToEnd().Split('\n');
 
                     // -rw------- 1 root root 169622 2016-04-10 03:20:01.945336135 +0000 /var/log/messages-20160410
-                    var re = new Regex(@"^[\-rwx]+\s+[0-9]+\s+[a-z_][a-z0-9_-]*\s+[a-z_][a-z0-9_-]*\s+(?<size>[0-9]+)\s+(?<date>[0-9]{4}-[0-9]{2}-[0-9]{2}(T|\s)[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]+Z?(\s[+\-][0-9]{4})?)\s(?<filename>.*$)", RegexOptions.CultureInvariant | RegexOptions.Compiled);
+                    var re = new Regex(@"^[\-rwx]+\s+[0-9]+\s+[a-z_][a-z0-9_-]*\s+[a-z_][a-z0-9_-]*\s+(?<size>-?[0-9]+)\s+(?<date>[0-9]{4}-[0-9]{2}-[0-9]{2}(T|\s)[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]+Z?(\s[+\-][0-9]{4})?)\s(?<filename>.*$)", RegexOptions.CultureInvariant | RegexOptions.Compiled);
                     foreach (var line in lines)
                     {
                         var match = re.Match(line);
+
                         if (match.Success)
                         {
                             var groups = match.Groups;
                             var size = long.Parse(groups["size"].Value);
+                            if (size == -1)
+                            {
+                                size = long.MaxValue;
+                            }
                             var date = groups["date"].Value;
                             var dt = DateTime.Parse(date, System.Globalization.CultureInfo.InvariantCulture);
                             var filename = groups["filename"].Value;
                             var fi = new Fi(filename, size, dt);
-                            if (fi.Size > 0)
+                            if (fi.Size != 0)
                             {
                                 fis.Add(fi);
                             }
@@ -407,16 +423,18 @@ namespace Bender
         private class Stm
         {
             private long _privatePos;
+            private readonly long _length;
             private FileStream _fs;
             private Stream _ns;
             private readonly string _server;
             private readonly string _path;
 
-            public Stm(string server, string path, long position)
+            public Stm(string server, string path, long position, long length)
             {
                 _server = server;
                 _path = path;
                 Position = position;
+                _length = length;
 
                 if (string.IsNullOrEmpty(server))
                 {
@@ -464,9 +482,15 @@ namespace Bender
                         }
 
                         _ns = Remote.ConnectStream(_server);
-                        var s = "tailc\n" + _path + "\n" + Position.ToString(System.Globalization.CultureInfo.InvariantCulture) + "\n";
+                        long pos = Position;
+                        if (_length == long.MaxValue)
+                        {
+                            pos = _length - pos;
+                        }
+                        var s = "tailc\n" + _path + "\n" + pos.ToString(System.Globalization.CultureInfo.InvariantCulture) + "\n";
                         var b = System.Text.Encoding.ASCII.GetBytes(s);
                         _ns.Write(b, 0, b.Length);
+                        _privatePos = Position;
                     }
 
                     while (count != 0)
