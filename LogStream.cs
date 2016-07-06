@@ -35,6 +35,8 @@ namespace Bender
             Rehash();
         }
 
+        public bool IsRemote => _fileInfo.Count > 0 && _fileInfo[0].Size == long.MaxValue;
+
         public void Rehash()
         {
             var pos = Position;
@@ -258,8 +260,10 @@ namespace Bender
                     {
                         if (local2 == 0)
                         {
+                            // Position = long.MaxValue;
                             break;
                         }
+                        local = local2;
                     }
                     else if (local != local2)
                     {
@@ -428,6 +432,8 @@ namespace Bender
             private Stream _ns;
             private readonly string _server;
             private readonly string _path;
+            private readonly List<byte> _cache;
+            private long _cacheStart;
 
             public Stm(string server, string path, long position, long length)
             {
@@ -440,6 +446,12 @@ namespace Bender
                 {
                     _fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete) { Position = position };
                     _privatePos = position;
+                }
+
+                if (_length == long.MaxValue)
+                {
+                    _cache = new List<byte>();
+                    _cacheStart = position;
                 }
             }
 
@@ -460,6 +472,29 @@ namespace Bender
             public int Read(byte[] array, int offset, int count)
             {
                 int result = 0;
+
+                if (_cache != null)
+                {
+                    var cacheOffset = (int)(Position - _cacheStart);
+                    var fromCache = Math.Min(count, _cache.Count - cacheOffset);
+                    if (cacheOffset >= 0 && fromCache > 0)
+                    {
+                        for (int i = 0; i < fromCache; ++i)
+                        {
+                            array[offset + i] = _cache[cacheOffset + i];
+                        }
+
+                        count -= (int)fromCache;
+                        result += (int)fromCache;
+                        offset += (int)fromCache;
+                        Position += result;
+                        if (count == 0)
+                        {
+                            return result;
+                        }
+                    }
+                }
+
                 if (_fs != null)
                 {
                     if (Position != _privatePos)
@@ -467,7 +502,9 @@ namespace Bender
                         _fs.Seek(Position, SeekOrigin.Begin);
                         _privatePos = Position;
                     }
-                    result = _fs.Read(array, offset, count);
+                    result += _fs.Read(array, offset, count);
+                    _privatePos += result;
+                    Position += result;
                 }
                 else
                 {
@@ -491,6 +528,14 @@ namespace Bender
                         var b = System.Text.Encoding.ASCII.GetBytes(s);
                         _ns.Write(b, 0, b.Length);
                         _privatePos = Position;
+                        if (_cache != null)
+                        {
+                            if (_cache.Count > 0)
+                            {
+                                _cache.Clear();
+                            }
+                            _cacheStart = _privatePos;
+                        }
                     }
 
                     while (count != 0)
@@ -500,14 +545,23 @@ namespace Bender
                         {
                             break;
                         }
+
+                        if (_cache != null && _cacheStart + _cache.Count == _privatePos)
+                        {
+                            for (var i = 0; i < read; ++i)
+                            {
+                                _cache.Add(array[i + offset]);
+                            }
+                        }
+
                         result += read;
                         offset += read;
                         count -= read;
+                        _privatePos += read;
+                        Position += read;
                     }
                 }
 
-                Position += result;
-                _privatePos += result;
                 return result;
             }
 

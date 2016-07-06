@@ -130,6 +130,7 @@ namespace Bender
             var lines = new List<long>();
 
             long offset = (long)lc * 1000;
+            long readBytes = 0;
             var buf = new byte[16384];
             while (true)
             {
@@ -144,6 +145,8 @@ namespace Bender
 
                 // start of first line
                 var lastLine = absolutePos;
+                var previousReadBytes = readBytes;
+                readBytes = 0;
 
                 while (true)
                 {
@@ -159,6 +162,8 @@ namespace Bender
 
                         break;
                     }
+
+                    readBytes += local;
 
                     for (int i = 0; i < local; ++i)
                     {
@@ -189,6 +194,11 @@ namespace Bender
 
                         ++absolutePos;
                     }
+                }
+
+                if (readBytes == previousReadBytes)
+                {
+                    readFromStart = true;
                 }
 
                 if (readFromStart || lc == 0 || lines.Count > lc * 2)
