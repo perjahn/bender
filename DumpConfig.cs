@@ -12,16 +12,27 @@ namespace Bender
 
         public static void Enable()
         {
-            var key = Registry.LocalMachine.CreateSubKey(SubKey);
-            key.SetValue("DumpCount", 10, RegistryValueKind.DWord);
-            key.SetValue("DumpType", 2, RegistryValueKind.DWord);
-            key.SetValue("CustomDumpFlags", 0, RegistryValueKind.DWord);
-            key.SetValue("DumpFolder", DumpLocation, RegistryValueKind.String);
+            using (var key = Registry.LocalMachine.CreateSubKey(SubKey))
+            {
+                key.SetValue("DumpCount", 10, RegistryValueKind.DWord);
+                key.SetValue("DumpType", 2, RegistryValueKind.DWord);
+                key.SetValue("CustomDumpFlags", 0, RegistryValueKind.DWord);
+                key.SetValue("DumpFolder", DumpLocation, RegistryValueKind.String);
+            }
+
             Directory.CreateDirectory(DumpLocation);
             DirectorySecurity acl = Directory.GetAccessControl(DumpLocation);
             SecurityIdentifier everyone = new SecurityIdentifier(WellKnownSidType.WorldSid, null);
             acl.AddAccessRule(new FileSystemAccessRule(everyone, FileSystemRights.FullControl | FileSystemRights.Synchronize, InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit, PropagationFlags.None, AccessControlType.Allow));
             Directory.SetAccessControl(DumpLocation, acl);
+        }
+
+        public static bool IsEnabled()
+        {
+            using (var key = Registry.LocalMachine.OpenSubKey(SubKey))
+            {
+                return key != null && 2.Equals(key.GetValue("DumpType"));
+            }
         }
 
         public static void Disable()

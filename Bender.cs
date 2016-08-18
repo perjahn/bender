@@ -203,6 +203,12 @@ namespace Bender
                                 DumpConfig.Enable(enable != 0);
                                 break;
                             }
+                        case "fulldumpenabled":
+                            {
+                                var enabled = DumpConfig.IsEnabled();
+                                Write(enabled ? "1" : "0", output);
+                                break;
+                            }
                         case "mem":
                             {
                                 MEMORYSTATUSEX memStatus = new MEMORYSTATUSEX();
