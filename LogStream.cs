@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading;
 
@@ -37,6 +38,9 @@ namespace Bender
 
         public bool IsRemote => _fileInfo.Count > 0 && _fileInfo[0].Size == long.MaxValue;
 
+        [DllImport("shlwapi.dll", CharSet = CharSet.Unicode)]
+        private static extern int StrCmpLogicalW(string psz1, string psz2);
+
         public void Rehash()
         {
             var pos = Position;
@@ -67,7 +71,8 @@ namespace Bender
                     if (lhs.Modification < rhs.Modification) return -1;
                     if (lhs.Modification > rhs.Modification) return 1;
 
-                    return 0;
+                    // Use filename as tiebreaker. Sort alphabetically reverse.
+                    return StrCmpLogicalW(rhs.Name, lhs.Name);
                 });
 
             var newInfos = new SortedDictionary<long, Fi>();
