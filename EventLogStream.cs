@@ -27,7 +27,7 @@ namespace Bender
 
         private static string EscapeNl(string input)
         {
-            return input.TrimEnd('\r', '\n').Replace("\r\n", "||").Replace("\n", "||").Replace("\r", "||")));
+            return input.TrimEnd('\r', '\n').Replace("\r\n", "||").Replace("\n", "||").Replace("\r", "||");
         }
 
         public override long Seek(long offset, SeekOrigin origin)
