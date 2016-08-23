@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -22,18 +23,20 @@ namespace Bender
                     path = path.Substring(0, index);
                 }
 
-                using (var logStream = new LogStream(server, path))
+                using (var stream = CreateStream(server, path, count))
                 {
+                    var logStream = stream as LogStream;
+
                     while (true)
                     {
-                        GetStrings(logStream, count, output, regex);
+                        GetStrings(stream, count, output, regex);
 
                         output(null, 0);
 
                         if (tail)
                         {
-                            logStream.WaitForChanges(1000);
-                            logStream.Rehash();
+                            logStream?.WaitForChanges(1000);
+                            logStream?.Rehash();
                             count = 0;
                         }
                         else
@@ -47,6 +50,33 @@ namespace Bender
             {
                 var buf = Encoding.ASCII.GetBytes(e.ToString());
                 output(buf, buf.Length);
+            }
+        }
+
+        private static Stream CreateStream(string server, string path, int count)
+        {
+            if (path.StartsWith("eventlog://"))
+            {
+                var ms = new MemoryStream();
+                path = path.Substring(11);
+                foreach (var log in EventLog.GetEventLogs())
+                {
+                    if (!log.Log.Equals(path, StringComparison.OrdinalIgnoreCase)) continue;
+
+                    var w = new StreamWriter(ms);
+                    for (var j = count > 0 ? log.Entries.Count - count : 0; j < log.Entries.Count; ++j)
+                    {
+                        var e = log.Entries[j];
+                        w.WriteLine($"{e.TimeGenerated} {e.EntryType} {e.Source} {e.Message.Replace("\r\n", "||")}");
+                    }
+                    w.Flush();
+                }
+                ms.Position = 0;
+                return ms;
+            }
+            else
+            {
+                return new LogStream(server, path);
             }
         }
 
