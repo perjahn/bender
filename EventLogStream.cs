@@ -51,7 +51,7 @@ namespace Bender
                 while (written < offset && index >= 0)
                 {
                     var e = log.Entries[index--];
-                    var s = $"{e.TimeGenerated} {e.EntryType} {e.Source} {EscapeNl(e.Message)} {EscapeNl(Encoding.ASCII.GetString(e.Data))}\r\n";
+                    var s = $"{Bender.Date(e.TimeWritten)} {e.EntryType} {e.Source} {EscapeNl(e.Message)} {EscapeNl(Encoding.ASCII.GetString(e.Data))}\r\n";
                     written += s.Length;
                     strings.Add(s);
                 }
