@@ -2,12 +2,13 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Text;
 
 namespace Bender
 {
     class EventLogStream : Stream
     {
-        private string _source;
+        private readonly string _source;
 
         private MemoryStream _ms = new MemoryStream();
 
@@ -21,7 +22,12 @@ namespace Bender
 
         public override void Flush()
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
+        }
+
+        private static string EscapeNl(string input)
+        {
+            return input.TrimEnd('\r', '\n').Replace("\r\n", "||").Replace("\n", "||").Replace("\r", "||")));
         }
 
         public override long Seek(long offset, SeekOrigin origin)
@@ -45,14 +51,14 @@ namespace Bender
                 while (written < offset && index >= 0)
                 {
                     var e = log.Entries[index--];
-                    var s = $"{e.TimeGenerated} {e.EntryType} {e.Source} {e.Message.Replace("\r\n", "||")}\r\n";
+                    var s = $"{e.TimeGenerated} {e.EntryType} {e.Source} {EscapeNl(e.Message)} {EscapeNl(Encoding.ASCII.GetString(e.Data))}\r\n";
                     written += s.Length;
                     strings.Add(s);
                 }
 
                 var ms = new MemoryStream();
                 var w = new StreamWriter(ms);
-                for (int i = strings.Count - 1; i >= 0; --i)
+                for (var i = strings.Count - 1; i >= 0; --i)
                 {
                     w.Write(strings[i]);
                 }
@@ -66,7 +72,7 @@ namespace Bender
 
         public override void SetLength(long value)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public override int Read(byte[] buffer, int offset, int count)
@@ -76,7 +82,7 @@ namespace Bender
 
         public override void Write(byte[] buffer, int offset, int count)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public override bool CanRead { get; }
