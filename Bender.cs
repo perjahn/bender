@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Win32;
+using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Diagnostics;
@@ -12,7 +13,6 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
-using Microsoft.Win32;
 
 namespace Bender
 {
@@ -533,6 +533,14 @@ namespace Bender
                                 }
                             }
                             break;
+                        case "filecount":
+                            {
+                                var serverPath = ReadServerPath(ReadLine(input), fileMappings);
+                                var path = Path.GetDirectoryName(serverPath.Item2);
+                                var pattern = Path.GetFileName(serverPath.Item2);
+                                Write(Directory.GetFiles(path, pattern).Length.ToString(CultureInfo.InvariantCulture), output);
+                                break;
+                            }
                         default:
                             if (line.StartsWith("get /"))
                             {
