@@ -69,6 +69,7 @@
     <Compile Include="LogOutput.cs" />
     <Compile Include="LogStream.cs" />
     <Compile Include="Online.cs" />
+    <Compile Include="Patch.cs" />
     <Compile Include="PerformanceCounter.cs" />
     <Compile Include="PerformanceCounterClient.cs" />
     <Compile Include="Program.cs">
@@ -92,6 +93,17 @@
     <None Include="Servers.config">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <COMReference Include="WUApiLib">
+      <Guid>{B596CC9F-56E5-419E-A622-E01BB457431E}</Guid>
+      <VersionMajor>2</VersionMajor>
+      <VersionMinor>0</VersionMinor>
+      <Lcid>0</Lcid>
+      <WrapperTool>tlbimp</WrapperTool>
+      <Isolated>False</Isolated>
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+    </COMReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

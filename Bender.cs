@@ -541,6 +541,23 @@ namespace Bender
                                 Write(Directory.GetFiles(path, pattern).Length.ToString(CultureInfo.InvariantCulture), output);
                                 break;
                             }
+                        case "patch":
+                            {
+
+                                List<string> args = new List<string>();
+                                string arg;
+                                while ((arg = ReadLine(input)).Length > 0)
+                                {
+                                    args.Add(arg);
+                                }
+
+                                bool rebootIfNeeded = args.Contains("reboot");
+                                bool onlyList = args.Contains("onlylist");
+
+                                Patch patch = new Patch();
+                                patch.InstallPatches(rebootIfNeeded, onlyList, output);
+                                break;
+                            }
                         default:
                             if (line.StartsWith("get /"))
                             {
@@ -600,7 +617,7 @@ namespace Bender
 
         public static string BytesToStr(long value)
         {
-            string[] sizes = { "B", "KB", "MB", "GB" };
+            string[] sizes = { "B", "KB", "MB", "GB", "TB" };
             double len = value;
             int order = 0;
             while (len >= 1024 && order + 1 < sizes.Length)
