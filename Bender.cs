@@ -566,8 +566,10 @@ namespace Bender
                                     scripts.Add(arg);
                                 }
 
-                                Powershell powershell = new Powershell();
-                                powershell.RunPowershellScript(scripts.ToArray(), output);
+                                foreach (string script in scripts)
+                                {
+                                    Shell.Do(peer, input, output, "powershell.exe", $"-file {script}", false);
+                                }
                                 break;
                             }
                         default:

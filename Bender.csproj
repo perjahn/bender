@@ -72,7 +72,6 @@
     <Compile Include="Patch.cs" />
     <Compile Include="PerformanceCounter.cs" />
     <Compile Include="PerformanceCounterClient.cs" />
-    <Compile Include="Powershell.cs" />
     <Compile Include="Program.cs">
       <SubType>Component</SubType>
     </Compile>
