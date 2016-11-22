@@ -543,7 +543,6 @@ namespace Bender
                             }
                         case "patch":
                             {
-
                                 List<string> args = new List<string>();
                                 string arg;
                                 while ((arg = ReadLine(input)).Length > 0)
@@ -556,6 +555,21 @@ namespace Bender
 
                                 Patch patch = new Patch();
                                 patch.InstallPatches(rebootIfNeeded, onlyList, output);
+                                break;
+                            }
+                        case "powershell":
+                            {
+                                List<string> scripts = new List<string>();
+                                string arg;
+                                while ((arg = ReadLine(input)).Length > 0)
+                                {
+                                    scripts.Add(arg);
+                                }
+
+                                foreach (string script in scripts)
+                                {
+                                    Shell.Do(peer, input, output, "powershell.exe", $"-file {script}", false);
+                                }
                                 break;
                             }
                         default:
