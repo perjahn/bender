@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 14.00
 # Visual Studio 2015
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bender", "Bender.csproj", "{FF3B0B6E-4291-493B-B409-FD2BBB40D774}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bender", "Src\Bender.csproj", "{FF3B0B6E-4291-493B-B409-FD2BBB40D774}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
