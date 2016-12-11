@@ -192,10 +192,86 @@ namespace Bender
                     line = line.ToLowerInvariant();
                     switch (line)
                     {
+                        case "age":
+                            {
+                                var serverPath = ReadServerPath(ReadLine(input), fileMappings);
+                                var server = serverPath.Item1;
+                                var path = serverPath.Item2;
+                                var ms = new MemoryStream();
+                                FileTailer.Tail(server, path, 1, false, ms);
+                                var str = Encoding.ASCII.GetString(ms.ToArray());
+                                str = str.Substring(0, Math.Min(str.Length, 100)).Replace(",", ".");
+                                string os = null;
+                                var endsWithU = false;
+                                while (str.Length > 0)
+                                {
+                                    DateTime dt;
+                                    if (DateTime.TryParse(str, CultureInfo.InvariantCulture, endsWithU ? DateTimeStyles.AssumeUniversal : DateTimeStyles.AssumeLocal, out dt))
+                                    {
+                                        os = ((long)(DateTime.Now - dt).TotalSeconds).ToString();
+                                        break;
+                                    }
+                                    endsWithU = str.EndsWith("U") && !str.EndsWith(" U");
+                                    str = str.Substring(0, str.Length - 1);
+                                }
+                                Write(os ?? "null", output);
+                                break;
+                            }
+                        case "apppools":
+                            {
+                                Shell.Do(peer, input, output, @"c:\windows\system32\inetsrv\appcmd", "list apppool /config /xml", false);
+                                break;
+                            }
+                        case "bend":
+                            {
+                                Remote.Do(peer, input, output);
+                                break;
+                            }
+                        case "buildtime":
+                            {
+                                Write(Environment.MachineName + " " + Date(BuildDate.RetrieveLinkerTimestamp()) + "\r\n", output);
+                                break;
+                            }
                         case "crash":
                             {
                                 crash = true;
                                 throw new InvalidOperationException();
+                            }
+                        case "date":
+                            {
+                                var serverPath = ReadServerPath(ReadLine(input), fileMappings);
+                                var server = serverPath.Item1;
+                                var path = serverPath.Item2;
+                                var pattern = ReadLine(input);
+                                DateFinder.Find(new LogStream(server, path), output, pattern);
+                                break;
+                            }
+                        case "download":
+                            {
+                                var path = ReadLine(input);
+                                Zip.Download(path, output);
+                                break;
+                            }
+                        case "downloadzip":
+                            {
+                                var path = ReadLine(input);
+                                Zip.Zipit(path, output);
+                                break;
+                            }
+                        case "dump":
+                            {
+                                var path = ReadLine(input);
+                                var process = ReadLine(input);
+                                DumpFile.Create(path, process);
+                                break;
+                            }
+                        case "filecount":
+                            {
+                                var serverPath = ReadServerPath(ReadLine(input), fileMappings);
+                                var path = Path.GetDirectoryName(serverPath.Item2);
+                                var pattern = Path.GetFileName(serverPath.Item2);
+                                Write(Directory.GetFiles(path, pattern).Length.ToString(CultureInfo.InvariantCulture), output);
+                                break;
                             }
                         case "fulldump":
                             {
@@ -209,6 +285,26 @@ namespace Bender
                                 Write(enabled ? "1" : "0", output);
                                 break;
                             }
+                        case "isonline":
+                            {
+                                Write(Environment.MachineName + " ", output);
+                                FetchUri.FetchHeaders("http://localhost/IsOnline.aspx", output);
+                                Write($" {Path.GetFileName(Path.GetDirectoryName(DetermineVersion.DetermineWebSiteFolder()))} \r\n", output);
+                                break;
+                            }
+                        case "isonline2":
+                            {
+                                FetchUri.FetchHeaders("http://localhost/IsOnline.aspx", output);
+                                break;
+                            }
+                        case "ls":
+                            {
+                                foreach (var fi in LogStream.GetLocalFileInfos(ReadLine(input)))
+                                {
+                                    Write($"- 1 root root {fi.Size} {fi.Modification.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)} {fi.Name}\n", output);
+                                }
+                                break;
+                            }
                         case "mem":
                             {
                                 MEMORYSTATUSEX memStatus = new MEMORYSTATUSEX();
@@ -218,10 +314,68 @@ namespace Bender
                                 }
                                 break;
                             }
+                        case "netrelease":
+                            {
+                                var release = Convert.ToInt64(Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full", "Release", null));
+                                Write(release.ToString(CultureInfo.InvariantCulture), output);
+                                break;
+                            }
+                        case "ntp":
+                            {
+                                Shell.Do(peer, input, output, "ntpq.exe", "-np", false);
+                                break;
+                            }
+                        case "offline":
+                            {
+                                Online.Do(false);
+                                break;
+                            }
+                        case "online":
+                            {
+                                Online.Do(true);
+                                break;
+                            }
+                        case "patch":
+                            {
+                                List<string> args = new List<string>();
+                                string arg;
+                                while ((arg = ReadLine(input)).Length > 0)
+                                {
+                                    args.Add(arg);
+                                }
+
+                                bool rebootIfNeeded = args.Contains("reboot");
+                                bool onlyList = args.Contains("onlylist");
+
+                                Patch patch = new Patch();
+                                patch.InstallPatches(rebootIfNeeded, onlyList, output);
+                                break;
+                            }
                         case "pc":
                             {
                                 var counter = ReadLine(input);
                                 Write(PerformanceCounter.GetValue(counter).ToString(CultureInfo.InvariantCulture), output);
+                                break;
+                            }
+                        case "post / http/1.0":
+                        case "post / http/1.1":
+                            {
+                                Http.Do(input, fileMappings, colorMappings);
+                                break;
+                            }
+                        case "powershell":
+                            {
+                                List<string> scripts = new List<string>();
+                                string arg;
+                                while ((arg = ReadLine(input)).Length > 0)
+                                {
+                                    scripts.Add(arg);
+                                }
+
+                                foreach (string script in scripts)
+                                {
+                                    Shell.Do(peer, input, output, "powershell.exe", $"-file {script}", false);
+                                }
                                 break;
                             }
                         case "rpc":
@@ -251,14 +405,39 @@ namespace Bender
                                 }
                                 break;
                             }
-                        case "time":
+                        case "shell":
                             {
-                                Write(Environment.MachineName + " " + Date() + "\r\n", output);
+                                Shell.Do(peer, input, output);
                                 break;
                             }
-                        case "time2":
+                        case "sites":
                             {
-                                Write(Date(), output);
+                                Shell.Do(peer, input, output, @"c:\windows\system32\inetsrv\appcmd", "list site /config /xml", false);
+                                break;
+                            }
+                        case "stacktrace":
+                        case "stacktracenative":
+                        case "verifyheap":
+                            {
+                                var pidOrSpec = GetPid2(ReadLine(input));
+
+                                switch (line)
+                                {
+                                    case "stacktrace":
+                                        StackTrace.DoManaged(peer, output, pidOrSpec);
+                                        break;
+                                    case "stacktracenative":
+                                        StackTrace.DoNative(peer, output, pidOrSpec);
+                                        break;
+                                    case "verifyheap":
+                                        StackTrace.VerifyHeap(peer, output, pidOrSpec);
+                                        break;
+                                }
+                                break;
+                            }
+                        case "systeminfo":
+                            {
+                                Shell.Do(peer, input, output, "systeminfo.exe", "", false);
                                 break;
                             }
                         case "tail":
@@ -281,106 +460,28 @@ namespace Bender
                                 FileTailer.Tail(server, path, count, tail, output);
                                 break;
                             }
-                        case "age":
+                        case "tailc":
                             {
-                                var serverPath = ReadServerPath(ReadLine(input), fileMappings);
-                                var server = serverPath.Item1;
-                                var path = serverPath.Item2;
-                                var ms = new MemoryStream();
-                                FileTailer.Tail(server, path, 1, false, ms);
-                                var str = Encoding.ASCII.GetString(ms.ToArray());
-                                str = str.Substring(0, Math.Min(str.Length, 100)).Replace(",", ".");
-                                string os = null;
-                                var endsWithU = false;
-                                while (str.Length > 0)
+                                using (var fs = new FileStream(ReadLine(input), FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
                                 {
-                                    DateTime dt;
-                                    if (DateTime.TryParse(str, CultureInfo.InvariantCulture, endsWithU ? DateTimeStyles.AssumeUniversal : DateTimeStyles.AssumeLocal, out dt))
-                                    {
-                                        os = ((long)(DateTime.Now - dt).TotalSeconds).ToString();
-                                        break;
-                                    }
-                                    endsWithU = str.EndsWith("U") && !str.EndsWith(" U");
-                                    str = str.Substring(0, str.Length - 1);
+                                    fs.Position = long.Parse(ReadLine(input));
+                                    fs.CopyTo(output);
                                 }
-                                Write(os ?? "null", output);
                                 break;
                             }
-                        case "uri":
+                        case "tasklist":
                             {
-                                var path = ReadLine(input);
-                                FetchUri.Fetch(path, output);
+                                Shell.Do(peer, input, output, "tasklist.exe", "", false);
                                 break;
                             }
-                        case "date":
+                        case "tasklistj":
                             {
-                                var serverPath = ReadServerPath(ReadLine(input), fileMappings);
-                                var server = serverPath.Item1;
-                                var path = serverPath.Item2;
-                                var pattern = ReadLine(input);
-                                DateFinder.Find(new LogStream(server, path), output, pattern);
+                                Tasklist.JavaScript(output);
                                 break;
                             }
-                        case "upload":
+                        case "tasklistl":
                             {
-                                var path = ReadLine(input);
-                                Zip.Upload(path, input);
-                            }
-                            break;
-                        case "download":
-                            {
-                                var path = ReadLine(input);
-                                Zip.Download(path, output);
-                            }
-                            break;
-                        case "uploadzip":
-                            {
-                                var path = ReadLine(input);
-                                Zip.Unzipit(path, input);
-                            }
-                            break;
-                        case "downloadzip":
-                            {
-                                var path = ReadLine(input);
-                                Zip.Zipit(path, output);
-                            }
-                            break;
-                        case "shell":
-                            {
-                                Shell.Do(peer, input, output);
-                            }
-                            break;
-                        case "apppools":
-                            {
-                                Shell.Do(peer, input, output, @"c:\windows\system32\inetsrv\appcmd", "list apppool /config /xml", false);
-                            }
-                            break;
-                        case "sites":
-                            {
-                                Shell.Do(peer, input, output, @"c:\windows\system32\inetsrv\appcmd", "list site /config /xml", false);
-                            }
-                            break;
-                        case "buildtime":
-                            {
-                                Write(Environment.MachineName + " " + Date(BuildDate.RetrieveLinkerTimestamp()) + "\r\n", output);
-                                break;
-                            }
-                        case "online":
-                            Online.Do(true);
-                            break;
-                        case "offline":
-                            Online.Do(false);
-                            break;
-                        case "isonline":
-                            {
-                                Write(Environment.MachineName + " ", output);
-                                FetchUri.FetchHeaders("http://localhost/IsOnline.aspx", output);
-                                Write($" {Path.GetFileName(Path.GetDirectoryName(DetermineVersion.DetermineWebSiteFolder()))} \r\n", output);
-                                break;
-                            }
-                        case "isonline2":
-                            {
-                                FetchUri.FetchHeaders("http://localhost/IsOnline.aspx", output);
+                                Shell.Do(peer, input, output, "tasklist.exe", "/FO LIST", false);
                                 break;
                             }
                         case "tickcount":
@@ -406,16 +507,14 @@ namespace Bender
                                 Write(Date(DateTime.UtcNow.AddSeconds(secs)) + "\n", output);
                                 break;
                             }
-                        case "uptime2":
+                        case "time":
                             {
-                                var tc = GetTickCount64();
-                                Write((tc / 1000.0).ToString(CultureInfo.InvariantCulture) + "\n", output);
-                                Write(TimeSpan.FromMilliseconds(tc) + "\n", output);
+                                Write(Environment.MachineName + " " + Date() + "\r\n", output);
                                 break;
                             }
-                        case "uptime":
+                        case "time2":
                             {
-                                Write(GetUpTime().ToString(), output);
+                                Write(Date(), output);
                                 break;
                             }
                         case "update":
@@ -426,77 +525,39 @@ namespace Bender
                                 Shell.Spawn(arguments);
                                 break;
                             }
-                        case "dump":
+                        case "upload":
                             {
                                 var path = ReadLine(input);
-                                var process = ReadLine(input);
-                                DumpFile.Create(path, process);
+                                Zip.Upload(path, input);
                                 break;
                             }
-                        case "ntp":
+                        case "uploadzip":
                             {
-                                Shell.Do(peer, input, output, "ntpq.exe", "-np", false);
+                                var path = ReadLine(input);
+                                Zip.Unzipit(path, input);
                                 break;
                             }
-                        case "tasklist":
+                        case "uptime":
                             {
-                                Shell.Do(peer, input, output, "tasklist.exe", "", false);
+                                Write(GetUpTime().ToString(), output);
                                 break;
                             }
-                        case "tasklistl":
+                        case "uptime2":
                             {
-                                Shell.Do(peer, input, output, "tasklist.exe", "/FO LIST", false);
+                                var tc = GetTickCount64();
+                                Write((tc / 1000.0).ToString(CultureInfo.InvariantCulture) + "\n", output);
+                                Write(TimeSpan.FromMilliseconds(tc) + "\n", output);
                                 break;
                             }
-                        case "tasklistj":
+                        case "uri":
                             {
-                                Tasklist.JavaScript(output);
+                                var path = ReadLine(input);
+                                FetchUri.Fetch(path, output);
                                 break;
                             }
-                        case "systeminfo":
-                            {
-                                Shell.Do(peer, input, output, "systeminfo.exe", "", false);
-                                break;
-                            }
-                        case "post / http/1.0":
-                        case "post / http/1.1":
-                            Http.Do(input, fileMappings, colorMappings);
-                            break;
                         case "users":
                             {
                                 Shell.Do(peer, input, output, "query.exe", "user", false);
-                                break;
-                            }
-                        case "netrelease":
-                            {
-                                var release = Convert.ToInt64(Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full", "Release", null));
-                                Write(release.ToString(CultureInfo.InvariantCulture), output);
-                                break;
-                            }
-                        case "stacktrace":
-                        case "stacktracenative":
-                        case "verifyheap":
-                            {
-                                var pidOrSpec = GetPid2(ReadLine(input));
-
-                                switch (line)
-                                {
-                                    case "stacktrace":
-                                        StackTrace.DoManaged(peer, output, pidOrSpec);
-                                        break;
-                                    case "stacktracenative":
-                                        StackTrace.DoNative(peer, output, pidOrSpec);
-                                        break;
-                                    case "verifyheap":
-                                        StackTrace.VerifyHeap(peer, output, pidOrSpec);
-                                        break;
-                                }
-                                break;
-                            }
-                        case "wertrace":
-                            {
-                                var process = ReadLine(input);
-                                StackTrace.OpenWerDump(peer, output, process);
                                 break;
                             }
                         case "version":
@@ -509,67 +570,12 @@ namespace Bender
                                 {
                                     DetermineVersion.Do(pid, output, line == "version" ? " " : (line == "version2" ? null : "\n"));
                                 }
-                            }
-                            break;
-                        case "bend":
-                            {
-                                Remote.Do(peer, input, output);
-                            }
-                            break;
-                        case "ls":
-                            {
-                                foreach (var fi in LogStream.GetLocalFileInfos(ReadLine(input)))
-                                {
-                                    Write($"- 1 root root {fi.Size} {fi.Modification.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)} {fi.Name}\n", output);
-                                }
-                            }
-                            break;
-                        case "tailc":
-                            {
-                                using (var fs = new FileStream(ReadLine(input), FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                                {
-                                    fs.Position = long.Parse(ReadLine(input));
-                                    fs.CopyTo(output);
-                                }
-                            }
-                            break;
-                        case "filecount":
-                            {
-                                var serverPath = ReadServerPath(ReadLine(input), fileMappings);
-                                var path = Path.GetDirectoryName(serverPath.Item2);
-                                var pattern = Path.GetFileName(serverPath.Item2);
-                                Write(Directory.GetFiles(path, pattern).Length.ToString(CultureInfo.InvariantCulture), output);
                                 break;
                             }
-                        case "patch":
+                        case "wertrace":
                             {
-                                List<string> args = new List<string>();
-                                string arg;
-                                while ((arg = ReadLine(input)).Length > 0)
-                                {
-                                    args.Add(arg);
-                                }
-
-                                bool rebootIfNeeded = args.Contains("reboot");
-                                bool onlyList = args.Contains("onlylist");
-
-                                Patch patch = new Patch();
-                                patch.InstallPatches(rebootIfNeeded, onlyList, output);
-                                break;
-                            }
-                        case "powershell":
-                            {
-                                List<string> scripts = new List<string>();
-                                string arg;
-                                while ((arg = ReadLine(input)).Length > 0)
-                                {
-                                    scripts.Add(arg);
-                                }
-
-                                foreach (string script in scripts)
-                                {
-                                    Shell.Do(peer, input, output, "powershell.exe", $"-file {script}", false);
-                                }
+                                var process = ReadLine(input);
+                                StackTrace.OpenWerDump(peer, output, process);
                                 break;
                             }
                         default:
